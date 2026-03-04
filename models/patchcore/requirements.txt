@@ -1,0 +1,20 @@
+# PatchCore Experiment - Pinned Dependencies
+# ===========================================
+# Base image already provides: torch==2.1.0, torchvision==0.16.0 (CUDA 11.8)
+# All versions below reflect what was tested and verified working.
+# To reproduce: docker compose build  (no --no-cache needed, layers are cached)
+#
+# Tested on: NVIDIA GTX 1080, driver 580.126.09, CUDA 11.8
+
+anomalib[core]==1.2.0
+lightning==2.6.1
+torchmetrics==1.8.2
+opencv-python-headless==4.11.0.86
+kornia==0.8.2
+imgaug==0.4.0
+timm==1.0.25
+python-dotenv==1.2.2
+numpy==1.26.0
+pandas==2.3.3
+scikit-learn==1.7.2
+matplotlib==3.7.5

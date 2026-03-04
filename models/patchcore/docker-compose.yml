@@ -1,0 +1,29 @@
+# =============================================================================
+# Docker Compose - PatchCore Experiment
+# =============================================================================
+# Run from this directory: docker compose run --rm patchcore python src/experiment_runner.py
+# GPU access via NVIDIA Container Toolkit (requires: docker context use default)
+# =============================================================================
+
+services:
+  patchcore:
+    build: .
+    shm_size: '8gb'
+    volumes:
+      # Shared dataset from repository root (read-only)
+      - ../../dataset:/app/dataset:ro
+      # Experiment results persist in repository root (per-model subfolder)
+      - ../../experiments/patchcore:/app/experiments
+      # Dataset splits (generated during experiments)
+      - ../../splits/patchcore:/app/splits
+      # Live source code mount — edit without rebuilding the image
+      - ./src:/app/src
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    stdin_open: true
+    tty: true

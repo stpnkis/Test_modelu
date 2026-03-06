@@ -1,0 +1,31 @@
+# =============================================================================
+# Docker Compose - SimpleNet Experiment
+# =============================================================================
+# Run from this directory: docker compose run --rm simplenet python src/experiment_runner.py
+# GPU access via NVIDIA Container Toolkit (requires: docker context use default)
+# =============================================================================
+
+services:
+  simplenet:
+    build: .
+    shm_size: '8gb'
+    volumes:
+      # Shared dataset from repository root (read-only)
+      - ../../dataset:/app/dataset:ro
+      # Experiment results persist in repository root (per-model subfolder)
+      - ../../experiments/simplenet:/app/experiments
+      # Dataset splits (generated during experiments)
+      - ../../splits/simplenet:/app/splits
+      # Live source code mount — edit without rebuilding the image
+      - ./src:/app/src
+      # Tests mount — edit without rebuilding the image
+      - ./tests:/app/tests
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    stdin_open: true
+    tty: true

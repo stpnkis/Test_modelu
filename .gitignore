@@ -4,10 +4,17 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.venv/
+.pytest_cache/
 
-# --- Experiment outputs (generated, can be large) ---
+# --- Experiment outputs ---
+# Ignore model weights and logs; commit only results.csv
+experiments/*/logs/
+experiments/**/*.pth
+experiments/**/*.log
+
+# --- Dataset splits (auto-generated via symlinks) ---
 splits/
-experiments/
 
 # --- Dataset (large binary files — add manually) ---
 dataset/

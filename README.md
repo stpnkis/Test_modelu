@@ -15,8 +15,11 @@ Test_modelu/
 ├── dataset/              ← shared dataset (gitignored, add manually)
 │   ├── ok/               ← normal (defect-free) images
 │   └── nok/              ← defective images
-├── experiments/          ← results per model (gitignored)
-│   └── patchcore/
+├── experiments/          ← results per model (logs and weights gitignored;
+│   │                       results.csv files ARE tracked)
+│   ├── patchcore/
+│   │   └── results.csv
+│   └── simplenet/
 │       └── results.csv
 ├── models/
 │   ├── patchcore/        ← PatchCore experiments
@@ -29,7 +32,19 @@ Test_modelu/
 │   │       ├── train.py
 │   │       ├── evaluate.py
 │   │       └── experiment_runner.py
-│   └── <next_model>/     ← add further models here
+│   └── simplenet/        ← SimpleNet experiments (CVPR 2023)
+│       ├── Dockerfile
+│       ├── docker-compose.yml
+│       ├── requirements.txt
+│       ├── README.md
+│       ├── src/
+│       │   ├── dataset_splitter.py
+│       │   ├── train.py
+│       │   ├── evaluate.py
+│       │   └── experiment_runner.py
+│       └── tests/
+│           ├── test_splitter.py
+│           └── test_metrics.py
 └── splits/               ← auto-generated train/test splits (gitignored)
 ```
 
@@ -65,6 +80,7 @@ dataset/nok/   ← defective images
 | Model | Status | Description |
 |---|---|---|
 | [PatchCore](models/patchcore/) | ✅ Working | Nearest-neighbour coreset memory bank |
+| [SimpleNet](models/simplenet/) | ⚠️ Training issues | Discriminator + synthetic anomalies in feature space (CVPR 2023) — AUROC < 0.5 on casting data, see [SimpleNet README](models/simplenet/README.md#experiment-results-on-casting-dataset) |
 
 ---
 
@@ -74,6 +90,12 @@ dataset/nok/   ← defective images
 cd models/patchcore
 docker compose build
 docker compose run --rm patchcore python src/experiment_runner.py
+```
+
+```bash
+cd models/simplenet
+docker compose build
+docker compose run --rm simplenet python src/experiment_runner.py
 ```
 
 See each model's `README.md` for model-specific instructions.

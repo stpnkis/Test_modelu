@@ -1,0 +1,20 @@
+# =============================================================================
+# AnomalyDINO — Pinned Python Dependencies
+# =============================================================================
+# Base image provides:  torch==2.1.0  torchvision==0.16.0  (CUDA 11.8)
+# All versions below were tested and verified working together.
+#
+# Reproduce:  docker compose build   (from models/anomalydino/)
+# Tested on:  NVIDIA GTX 1080, driver 580.126.09, CUDA 11.8
+# =============================================================================
+
+# DINOv2 weights are fetched via torch.hub — no separate package needed.
+
+# Core scientific stack
+numpy==1.26.0
+pandas==2.3.3
+scikit-learn==1.7.2
+scipy==1.14.1
+
+# Image I/O
+Pillow==10.4.0

@@ -7,11 +7,11 @@ build/
 .venv/
 .pytest_cache/
 
-# --- Experiment outputs ---
-# Ignore model weights and logs; commit only results.csv
+# --- Experiment outputs (auto-generated — do not commit) ---
 experiments/*/logs/
 experiments/**/*.pth
 experiments/**/*.log
+experiments/**/*.csv
 
 # --- Dataset splits (auto-generated via symlinks) ---
 splits/

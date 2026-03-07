@@ -8,49 +8,61 @@ industrial visual inspection data.
 
 ---
 
-## Repository structure
+## Quick Start (after cloning)
+
+```bash
+bash setup.sh              # create experiments/ and splits/ output dirs
+cd models/anomalydino
+docker compose build
+docker compose run --rm anomalydino python src/experiment_runner.py
+```
+
+---
+
+## Repository Structure
 
 ```
 Test_modelu/
-├── dataset/              ← shared dataset (gitignored, add manually)
+├── setup.sh              ← run once after cloning (creates output dirs)
+├── dataset/              ← shared dataset (gitignored — add manually)
 │   ├── ok/               ← normal (defect-free) images
 │   └── nok/              ← defective images
-├── experiments/          ← results per model (logs and weights gitignored;
-│   │                       results.csv files ARE tracked)
+├── experiments/          ← model outputs: .pth, logs, results.csv (gitignored)
+│   ├── anomalydino/
 │   ├── patchcore/
-│   │   └── results.csv
 │   └── simplenet/
-│       └── results.csv
+├── splits/               ← auto-generated train/test splits (gitignored)
 ├── models/
-│   ├── patchcore/        ← PatchCore experiments
+│   ├── anomalydino/      ← AnomalyDINO (WACV 2025) — DINOv2 ViT-B
+│   │   ├── Dockerfile
+│   │   ├── docker-compose.yml
+│   │   ├── requirements.txt
+│   │   ├── README.md
+│   │   ├── src/
+│   │   │   ├── dataset_splitter.py
+│   │   │   ├── train.py
+│   │   │   ├── evaluate.py
+│   │   │   └── experiment_runner.py
+│   │   └── tests/
+│   │       ├── test_splitter.py
+│   │       └── test_metrics.py
+│   ├── patchcore/        ← PatchCore — WideResNet + coreset
 │   │   ├── Dockerfile
 │   │   ├── docker-compose.yml
 │   │   ├── requirements.txt
 │   │   ├── README.md
 │   │   └── src/
-│   │       ├── dataset_splitter.py
-│   │       ├── train.py
-│   │       ├── evaluate.py
-│   │       └── experiment_runner.py
-│   └── simplenet/        ← SimpleNet experiments (CVPR 2023)
+│   └── simplenet/        ← SimpleNet (CVPR 2023) — discriminator
 │       ├── Dockerfile
 │       ├── docker-compose.yml
 │       ├── requirements.txt
 │       ├── README.md
 │       ├── src/
-│       │   ├── dataset_splitter.py
-│       │   ├── train.py
-│       │   ├── evaluate.py
-│       │   └── experiment_runner.py
 │       └── tests/
-│           ├── test_splitter.py
-│           └── test_metrics.py
-└── splits/               ← auto-generated train/test splits (gitignored)
 ```
 
-Each model lives in its own subdirectory under `models/` with its own
-`Dockerfile`, `docker-compose.yml`, `requirements.txt`, and source code.
-The `dataset/` directory is shared across all models.
+Each model has its own `Dockerfile`, `docker-compose.yml`, `requirements.txt`,
+and source code. The `dataset/` directory is shared across all models.
 
 ---
 
@@ -77,33 +89,30 @@ dataset/nok/   ← defective images
 
 ## Models
 
-| Model | Status | Description |
-|---|---|---|
-| [PatchCore](models/patchcore/) | ✅ Working | Nearest-neighbour coreset memory bank |
-| [SimpleNet](models/simplenet/) | ⚠️ Training issues | Discriminator + synthetic anomalies in feature space (CVPR 2023) — AUROC < 0.5 on casting data, see [SimpleNet README](models/simplenet/README.md#experiment-results-on-casting-dataset) |
+| Model | Backbone | Status | AUROC (n=200) |
+|---|---|---|---|
+| [AnomalyDINO](models/anomalydino/) | DINOv2 ViT-B/14 | ✅ Working | **0.981** |
+| [PatchCore](models/patchcore/) | WideResNet-50-2 | ✅ Working | — |
+| [SimpleNet](models/simplenet/) | ResNet-18 + MLP | ⚠️ Low accuracy | < 0.5 on casting data |
 
 ---
 
-## Running an experiment
+## Running an Experiment
 
 ```bash
-cd models/patchcore
+cd models/anomalydino      # or patchcore / simplenet
 docker compose build
-docker compose run --rm patchcore python src/experiment_runner.py
+docker compose run --rm anomalydino python src/experiment_runner.py
 ```
 
-```bash
-cd models/simplenet
-docker compose build
-docker compose run --rm simplenet python src/experiment_runner.py
-```
+Results are written to `experiments/<model>/results.csv`.
 
-See each model's `README.md` for model-specific instructions.
+See each model's `README.md` for model-specific CLI options.
 
 ---
 
 ## Requirements
 
-- Docker with NVIDIA Container Toolkit
-- GPU with CUDA support
+- Docker with NVIDIA Container Toolkit (`nvidia-docker2`)
+- GPU with CUDA support (also runs on CPU, significantly slower)
 - System Docker context: `docker context use default`

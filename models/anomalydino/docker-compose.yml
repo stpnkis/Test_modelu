@@ -1,0 +1,38 @@
+# =============================================================================
+# Docker Compose — AnomalyDINO Experiment
+# =============================================================================
+# Usage:
+#   docker compose build
+#   docker compose run --rm anomalydino python src/experiment_runner.py
+#
+# GPU access requires NVIDIA Container Toolkit.
+# =============================================================================
+
+services:
+  anomalydino:
+    build: .
+    shm_size: "8gb"
+    volumes:
+      # Shared dataset (read-only)
+      - ../../dataset:/app/dataset:ro
+      # Experiment outputs (per-model subfolder)
+      - ../../experiments/anomalydino:/app/experiments
+      # Dataset splits
+      - ../../splits/anomalydino:/app/splits
+      # Live source mount — edit code without rebuilding the image
+      - ./src:/app/src
+      - ./tests:/app/tests
+      # Persist DINOv2 hub cache so weights aren't re-downloaded each run
+      - dino_hub_cache:/root/.cache/torch/hub
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    stdin_open: true
+    tty: true
+
+volumes:
+  dino_hub_cache:

@@ -88,6 +88,7 @@ DEFAULT_IMAGE_SIZE: int = 448
 
 # ── DINOv2 Feature Extractor ────────────────────────────────────────────────
 
+
 class DINOv2FeatureExtractor(torch.nn.Module):
     """Extract dense patch features from a frozen DINOv2 ViT.
 
@@ -140,24 +141,29 @@ class DINOv2FeatureExtractor(torch.nn.Module):
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _get_image_paths(directory: Path) -> List[Path]:
     """Return sorted paths of all image files in *directory*."""
     return sorted(
-        f for f in directory.iterdir()
+        f
+        for f in directory.iterdir()
         if f.is_file() and f.suffix.lower() in IMAGE_EXTENSIONS
     )
 
 
 def _make_transform(image_size: int) -> transforms.Compose:
     """ImageNet-normalised resize transform compatible with DINOv2."""
-    return transforms.Compose([
-        transforms.Resize((image_size, image_size)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-    ])
+    return transforms.Compose(
+        [
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        ]
+    )
 
 
 # ── Memory-Bank Builder ─────────────────────────────────────────────────────
+
 
 @torch.no_grad()
 def build_memory_bank(
@@ -207,17 +213,17 @@ def build_memory_bank(
             skipped += 1
             continue
 
-        tensor = transform(img).unsqueeze(0).to(device)          # [1, 3, H, W]
-        patch_feats = extractor(tensor)                           # [1, h, w, D]
+        tensor = transform(img).unsqueeze(0).to(device)  # [1, 3, H, W]
+        patch_feats = extractor(tensor)  # [1, h, w, D]
         _, feat_h, feat_w, D = patch_feats.shape
-        all_features.append(patch_feats.reshape(-1, D).cpu())     # [h*w, D]
+        all_features.append(patch_feats.reshape(-1, D).cpu())  # [h*w, D]
 
     if not all_features:
         raise FileNotFoundError(
             f"All images in {train_dir} failed to load ({skipped} skipped)."
         )
 
-    memory_bank = torch.cat(all_features, dim=0)                  # [k*h*w, D]
+    memory_bank = torch.cat(all_features, dim=0)  # [k*h*w, D]
 
     logger.info(
         "Memory bank: %d patches × %d-dim  (%d images, %d×%d grid%s)",
@@ -232,6 +238,7 @@ def build_memory_bank(
 
 
 # ── Train (build + save) ────────────────────────────────────────────────────
+
 
 def train_anomalydino(
     split_dir: str,
@@ -264,7 +271,9 @@ def train_anomalydino(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(
         "Training AnomalyDINO  |  split=%s  backbone=%s  device=%s",
-        split_dir, backbone, device,
+        split_dir,
+        backbone,
+        device,
     )
 
     cfg = BACKBONE_CONFIG[backbone]
@@ -279,8 +288,12 @@ def train_anomalydino(
 
     # 2. Build memory bank ────────────────────────────────────────────────
     t0 = time.perf_counter()
+    # Support both new (ok/) and legacy (good/) directory names
+    _train_dir = split_dir / "train" / "ok"
+    if not _train_dir.is_dir():
+        _train_dir = split_dir / "train" / "good"
     memory_bank, feat_h, feat_w = build_memory_bank(
-        train_dir=split_dir / "train" / "good",
+        train_dir=_train_dir,
         extractor=extractor,
         device=device,
         image_size=image_size,
@@ -330,19 +343,24 @@ if __name__ == "__main__":
         description="Build AnomalyDINO memory bank from reference images.",
     )
     parser.add_argument(
-        "--split-dir", required=True,
+        "--split-dir",
+        required=True,
         help="Path to the dataset split (must contain train/good/)",
     )
     parser.add_argument(
-        "--output-dir", default="experiments/train_output",
+        "--output-dir",
+        default="experiments/train_output",
         help="Where to save model_best.pth  (default: experiments/train_output)",
     )
     parser.add_argument(
-        "--image-size", type=int, default=DEFAULT_IMAGE_SIZE,
+        "--image-size",
+        type=int,
+        default=DEFAULT_IMAGE_SIZE,
         help=f"Input image size, must be divisible by 14  (default: {DEFAULT_IMAGE_SIZE})",
     )
     parser.add_argument(
-        "--backbone", default=DEFAULT_BACKBONE,
+        "--backbone",
+        default=DEFAULT_BACKBONE,
         choices=sorted(BACKBONE_CONFIG),
         help=f"DINOv2 backbone variant  (default: {DEFAULT_BACKBONE})",
     )

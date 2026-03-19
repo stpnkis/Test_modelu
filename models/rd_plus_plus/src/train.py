@@ -79,6 +79,7 @@ MIN_TRAIN_IMAGES = 10
 #  Encoder — frozen pretrained WideResNet-50-2                              #
 # ======================================================================== #
 
+
 class Encoder(nn.Module):
     """Pretrained WideResNet-50-2 that returns multi-scale features.
 
@@ -119,10 +120,15 @@ class Encoder(nn.Module):
 #  Decoder — reverse ResNet with transposed convolutions                    #
 # ======================================================================== #
 
+
 def _conv3x3(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     return nn.Conv2d(
-        in_planes, out_planes, kernel_size=3,
-        stride=stride, padding=1, bias=False,
+        in_planes,
+        out_planes,
+        kernel_size=3,
+        stride=stride,
+        padding=1,
+        bias=False,
     )
 
 
@@ -132,7 +138,11 @@ def _conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
 
 def _deconv2x2(in_planes: int, out_planes: int, stride: int = 1) -> nn.ConvTranspose2d:
     return nn.ConvTranspose2d(
-        in_planes, out_planes, kernel_size=2, stride=stride, bias=False,
+        in_planes,
+        out_planes,
+        kernel_size=2,
+        stride=stride,
+        bias=False,
     )
 
 
@@ -214,7 +224,10 @@ class Decoder(nn.Module):
 
         block_list: list[nn.Module] = [
             DecoderBottleneck(
-                self.inplanes, planes, stride, upsample,
+                self.inplanes,
+                planes,
+                stride,
+                upsample,
                 base_width=self.base_width,
             )
         ]
@@ -222,7 +235,9 @@ class Decoder(nn.Module):
         for _ in range(1, blocks):
             block_list.append(
                 DecoderBottleneck(
-                    self.inplanes, planes, base_width=self.base_width,
+                    self.inplanes,
+                    planes,
+                    base_width=self.base_width,
                 )
             )
         return nn.Sequential(*block_list)
@@ -238,7 +253,7 @@ class Decoder(nn.Module):
     # ---- forward ----
 
     def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
-        feat_a = self.layer1(x)       # [B, 1024, 16, 16]
+        feat_a = self.layer1(x)  # [B, 1024, 16, 16]
         feat_b = self.layer2(feat_a)  # [B, 512,  32, 32]
         feat_c = self.layer3(feat_b)  # [B, 256,  64, 64]
         return [feat_c, feat_b, feat_a]  # [256, 512, 1024] matches encoder
@@ -247,6 +262,7 @@ class Decoder(nn.Module):
 # ======================================================================== #
 #  Bottleneck Network (OCE — One-Class Embedding)                           #
 # ======================================================================== #
+
 
 class BNBottleneck(nn.Module):
     """Standard ResNet Bottleneck for the aggregation network."""
@@ -313,7 +329,7 @@ class BottleneckNetwork(nn.Module):
 
         # Main bottleneck: 3072(=1024×3) → 2048, stride=2 → [B, 2048, 8, 8]
         in_channels = 256 * exp * 3  # 3072
-        out_channels = 512 * exp      # 2048
+        out_channels = 512 * exp  # 2048
         self.base_width = width_per_group
 
         downsample = nn.Sequential(
@@ -321,8 +337,13 @@ class BottleneckNetwork(nn.Module):
             nn.BatchNorm2d(out_channels),
         )
         blocks: list[nn.Module] = [
-            BNBottleneck(in_channels, 512, stride=2, downsample=downsample,
-                         base_width=width_per_group),
+            BNBottleneck(
+                in_channels,
+                512,
+                stride=2,
+                downsample=downsample,
+                base_width=width_per_group,
+            ),
         ]
         for _ in range(2):  # 2 more blocks at 2048→2048
             blocks.append(
@@ -343,9 +364,7 @@ class BottleneckNetwork(nn.Module):
     def forward(self, features: list[torch.Tensor]) -> torch.Tensor:
         feat_a, feat_b, feat_c = features
 
-        l1 = self.relu(self.bn2(self.conv2(
-            self.relu(self.bn1(self.conv1(feat_a)))
-        )))
+        l1 = self.relu(self.bn2(self.conv2(self.relu(self.bn1(self.conv1(feat_a))))))
         l2 = self.relu(self.bn3(self.conv3(feat_b)))
 
         feature = torch.cat([l1, l2, feat_c], dim=1)
@@ -355,6 +374,7 @@ class BottleneckNetwork(nn.Module):
 # ======================================================================== #
 #  Multi-Projection Layer                                                   #
 # ======================================================================== #
+
 
 class ProjLayer(nn.Module):
     """Single-scale projection head (4-layer conv bottleneck)."""
@@ -400,12 +420,16 @@ class MultiProjectionLayer(nn.Module):
     ) -> list[torch.Tensor] | tuple[list[torch.Tensor], list[torch.Tensor]]:
         if features_noise is not None:
             return (
-                [self.proj_a(features_noise[0]),
-                 self.proj_b(features_noise[1]),
-                 self.proj_c(features_noise[2])],
-                [self.proj_a(features[0]),
-                 self.proj_b(features[1]),
-                 self.proj_c(features[2])],
+                [
+                    self.proj_a(features_noise[0]),
+                    self.proj_b(features_noise[1]),
+                    self.proj_c(features_noise[2]),
+                ],
+                [
+                    self.proj_a(features[0]),
+                    self.proj_b(features[1]),
+                    self.proj_c(features[2]),
+                ],
             )
         return [
             self.proj_a(features[0]),
@@ -417,6 +441,7 @@ class MultiProjectionLayer(nn.Module):
 # ======================================================================== #
 #  Loss functions                                                           #
 # ======================================================================== #
+
 
 def distillation_loss(
     encoder_features: list[torch.Tensor],
@@ -442,8 +467,10 @@ class CosineReconstruct(nn.Module):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.mean(
-            1 - F.cosine_similarity(
-                x.view(x.shape[0], -1), y.view(y.shape[0], -1),
+            1
+            - F.cosine_similarity(
+                x.view(x.shape[0], -1),
+                y.view(y.shape[0], -1),
             )
         )
 
@@ -466,10 +493,17 @@ class Revisit_RDLoss(nn.Module):
         super().__init__()
         if HAS_GEOMLOSS:
             self.sinkhorn = geomloss.SamplesLoss(
-                loss="sinkhorn", p=2, blur=0.05,
-                reach=None, diameter=10_000_000, scaling=0.95,
-                truncate=10, debias=True, potentials=False,
-                verbose=False, backend="auto",
+                loss="sinkhorn",
+                p=2,
+                blur=0.05,
+                reach=None,
+                diameter=10_000_000,
+                scaling=0.95,
+                truncate=10,
+                debias=True,
+                potentials=False,
+                verbose=False,
+                backend="auto",
             )
         else:
             self.sinkhorn = None
@@ -524,12 +558,16 @@ class Revisit_RDLoss(nn.Module):
 #  Dataset with pseudo-anomaly noise                                        #
 # ======================================================================== #
 
+
 class ImageFolderSimple(Dataset):
     """Load images from a flat directory (no labels)."""
 
-    def __init__(self, root: str | Path, transform: transforms.Compose | None = None) -> None:
+    def __init__(
+        self, root: str | Path, transform: transforms.Compose | None = None
+    ) -> None:
         self.paths: list[Path] = sorted(
-            p for p in Path(root).iterdir()
+            p
+            for p in Path(root).iterdir()
             if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
         )
         self.transform = transform
@@ -561,7 +599,8 @@ class TrainingDataset(Dataset):
 
     def __init__(self, root: str | Path, image_size: int = 256) -> None:
         self.paths: list[Path] = sorted(
-            p for p in Path(root).iterdir()
+            p
+            for p in Path(root).iterdir()
             if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
         )
         self.image_size = image_size
@@ -581,7 +620,7 @@ class TrainingDataset(Dataset):
         amplitude = 1.0
         for octave in range(6):
             raw = np.random.randn(3, h_noise, w_noise).astype(np.float32)
-            sigma = max(0.5, min(h_noise, w_noise) / (4 * (2 ** octave)))
+            sigma = max(0.5, min(h_noise, w_noise) / (4 * (2**octave)))
             for c in range(3):
                 raw[c] = scipy_gaussian_filter(raw[c], sigma=sigma)
             noise += amplitude * raw
@@ -591,7 +630,7 @@ class TrainingDataset(Dataset):
         noise = noise / nmax
 
         mask = np.zeros((3, size, size), dtype=np.float32)
-        mask[:, start_h:start_h + h_noise, start_w:start_w + w_noise] = 0.2 * noise
+        mask[:, start_h : start_h + h_noise, start_w : start_w + w_noise] = 0.2 * noise
         return mask
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
@@ -615,6 +654,7 @@ class TrainingDataset(Dataset):
 #  Anomaly map computation (used for validation during training)            #
 # ======================================================================== #
 
+
 def compute_anomaly_map(
     encoder_features: list[torch.Tensor],
     decoder_features: list[torch.Tensor],
@@ -632,8 +672,10 @@ def compute_anomaly_map(
     for enc, dec in zip(encoder_features, decoder_features):
         a_map = 1 - F.cosine_similarity(enc, dec, dim=1)  # [B, H, W]
         a_map = F.interpolate(
-            a_map.unsqueeze(1), size=out_size,
-            mode="bilinear", align_corners=True,
+            a_map.unsqueeze(1),
+            size=out_size,
+            mode="bilinear",
+            align_corners=True,
         )
         anomaly_map += a_map.squeeze(1)
 
@@ -643,6 +685,7 @@ def compute_anomaly_map(
 # ======================================================================== #
 #  Training function                                                        #
 # ======================================================================== #
+
 
 def train_rd_plus_plus(
     split_dir: str,
@@ -686,9 +729,13 @@ def train_rd_plus_plus(
     # ------------------------------------------------------------------
     # Guard: minimum training images
     # ------------------------------------------------------------------
-    train_dir = split_dir / "train" / "good"
+    # Support both new (ok/) and legacy (good/) directory names
+    train_dir = split_dir / "train" / "ok"
+    if not train_dir.is_dir():
+        train_dir = split_dir / "train" / "good"
     n_images = sum(
-        1 for p in train_dir.iterdir()
+        1
+        for p in train_dir.iterdir()
         if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
     )
 
@@ -716,8 +763,11 @@ def train_rd_plus_plus(
     train_dataset = TrainingDataset(train_dir, image_size=image_size)
     n_workers = min(4, max(1, len(train_dataset)))
     train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True,
-        num_workers=n_workers, pin_memory=(device.type == "cuda"),
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=n_workers,
+        pin_memory=(device.type == "cuda"),
         drop_last=(len(train_dataset) > batch_size),
     )
 
@@ -744,11 +794,14 @@ def train_rd_plus_plus(
     # Step 3: Optimisers (separate for projection and distillation)
     # ------------------------------------------------------------------
     optimizer_proj = torch.optim.Adam(
-        proj_layer.parameters(), lr=proj_lr, betas=(0.5, 0.999),
+        proj_layer.parameters(),
+        lr=proj_lr,
+        betas=(0.5, 0.999),
     )
     optimizer_distill = torch.optim.Adam(
         list(decoder.parameters()) + list(bn.parameters()),
-        lr=distill_lr, betas=(0.5, 0.999),
+        lr=distill_lr,
+        betas=(0.5, 0.999),
     )
 
     # ------------------------------------------------------------------
@@ -795,7 +848,8 @@ def train_rd_plus_plus(
 
             # Projection (both normal and noisy)
             projected_noise, projected_normal = proj_layer(
-                inputs, features_noise=inputs_noise,
+                inputs,
+                features_noise=inputs_noise,
             )
 
             # Projection loss (SSOT + reconstruct + contrast)
@@ -815,7 +869,7 @@ def train_rd_plus_plus(
                 optimizer_proj.zero_grad()
                 optimizer_distill.zero_grad()
 
-            epoch_loss_total += (L_distill.item() + weight_proj * L_proj.item())
+            epoch_loss_total += L_distill.item() + weight_proj * L_proj.item()
             epoch_loss_distill += L_distill.item()
             epoch_loss_proj += L_proj.item()
             n_batches += 1
@@ -838,7 +892,11 @@ def train_rd_plus_plus(
             best_epoch = epoch
             patience_counter = 0
             _save_checkpoint(
-                best_ckpt_path, decoder, bn, proj_layer, image_size,
+                best_ckpt_path,
+                decoder,
+                bn,
+                proj_layer,
+                image_size,
             )
         else:
             patience_counter += 1
@@ -869,6 +927,7 @@ def train_rd_plus_plus(
 # ======================================================================== #
 #  Checkpoint helpers                                                       #
 # ======================================================================== #
+
 
 def _save_checkpoint(
     path: Path,
@@ -911,27 +970,58 @@ if __name__ == "__main__":
         description="Train RD++ model",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--split-dir", type=str, required=True,
-                        help="Path to dataset split directory")
-    parser.add_argument("--output-dir", type=str, default="experiments/train_output",
-                        help="Path to save model checkpoint and logs")
+    parser.add_argument(
+        "--split-dir", type=str, required=True, help="Path to dataset split directory"
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="experiments/train_output",
+        help="Path to save model checkpoint and logs",
+    )
     parser.add_argument("--image-size", type=int, default=256)
-    parser.add_argument("--batch-size", type=int, default=16,
-                        help="Batch size for training")
-    parser.add_argument("--epochs", type=int, default=200,
-                        help="Maximum training epochs (early stopping may end sooner)")
-    parser.add_argument("--proj-lr", type=float, default=1e-3,
-                        help="Projection layer learning rate (Adam)")
-    parser.add_argument("--distill-lr", type=float, default=5e-3,
-                        help="Decoder + BN learning rate (Adam)")
-    parser.add_argument("--weight-proj", type=float, default=0.2,
-                        help="Weight for projection loss in total loss")
-    parser.add_argument("--accumulation-steps", type=int, default=2,
-                        help="Gradient accumulation steps")
-    parser.add_argument("--patience", type=int, default=30,
-                        help="Early stopping patience (epochs w/o improvement)")
-    parser.add_argument("--min-train-images", type=int, default=10,
-                        help="Minimum OK images required to start training")
+    parser.add_argument(
+        "--batch-size", type=int, default=16, help="Batch size for training"
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=200,
+        help="Maximum training epochs (early stopping may end sooner)",
+    )
+    parser.add_argument(
+        "--proj-lr",
+        type=float,
+        default=1e-3,
+        help="Projection layer learning rate (Adam)",
+    )
+    parser.add_argument(
+        "--distill-lr",
+        type=float,
+        default=5e-3,
+        help="Decoder + BN learning rate (Adam)",
+    )
+    parser.add_argument(
+        "--weight-proj",
+        type=float,
+        default=0.2,
+        help="Weight for projection loss in total loss",
+    )
+    parser.add_argument(
+        "--accumulation-steps", type=int, default=2, help="Gradient accumulation steps"
+    )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=30,
+        help="Early stopping patience (epochs w/o improvement)",
+    )
+    parser.add_argument(
+        "--min-train-images",
+        type=int,
+        default=10,
+        help="Minimum OK images required to start training",
+    )
 
     args = parser.parse_args()
 

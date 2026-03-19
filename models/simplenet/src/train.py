@@ -74,12 +74,16 @@ MIN_TRAIN_IMAGES = 50
 # Dataset helpers
 # ---------------------------------------------------------------------------
 
+
 class ImageFolderSimple(Dataset):
     """Load images from a flat directory (no labels)."""
 
-    def __init__(self, root: str | Path, transform: transforms.Compose | None = None) -> None:
+    def __init__(
+        self, root: str | Path, transform: transforms.Compose | None = None
+    ) -> None:
         self.paths: list[Path] = sorted(
-            p for p in Path(root).iterdir()
+            p
+            for p in Path(root).iterdir()
             if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
         )
         self.transform = transform
@@ -96,11 +100,13 @@ class ImageFolderSimple(Dataset):
 
 def make_transform(image_size: int) -> transforms.Compose:
     """Standard ImageNet-compatible preprocessing transform (deterministic)."""
-    return transforms.Compose([
-        transforms.Resize((image_size, image_size)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-    ])
+    return transforms.Compose(
+        [
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        ]
+    )
 
 
 def make_augment_transform(image_size: int) -> transforms.Compose:
@@ -114,20 +120,23 @@ def make_augment_transform(image_size: int) -> transforms.Compose:
     NOT included (would create artificial anomaly-like artifacts):
       - Cutout, random erasing, heavy crop, perspective distortion
     """
-    return transforms.Compose([
-        transforms.Resize((image_size, image_size)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
-        transforms.RandomRotation(10),
-        transforms.ColorJitter(brightness=0.1, contrast=0.1),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-    ])
+    return transforms.Compose(
+        [
+            transforms.Resize((image_size, image_size)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomRotation(10),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        ]
+    )
 
 
 # ---------------------------------------------------------------------------
 # Feature Extractor (frozen backbone)
 # ---------------------------------------------------------------------------
+
 
 class FeatureExtractor(nn.Module):
     """Extract intermediate features from a pretrained backbone via hooks.
@@ -158,8 +167,10 @@ class FeatureExtractor(nn.Module):
 
     def _make_hook(self, name: str):
         """Return a forward-hook that stores the layer output."""
+
         def hook(_module, _input, output):
             self._features[name] = output
+
         return hook
 
     @torch.no_grad()
@@ -188,7 +199,10 @@ class FeatureExtractor(nn.Module):
             feat = self._features[name]
             if feat.shape[2:] != target_size:
                 feat = F.interpolate(
-                    feat, size=target_size, mode="bilinear", align_corners=False,
+                    feat,
+                    size=target_size,
+                    mode="bilinear",
+                    align_corners=False,
                 )
             aligned.append(feat)
 
@@ -198,6 +212,7 @@ class FeatureExtractor(nn.Module):
 # ---------------------------------------------------------------------------
 # SimpleNet components
 # ---------------------------------------------------------------------------
+
 
 class Adaptor(nn.Module):
     """Two-layer feature adaptor (matches SimpleNet paper architecture).
@@ -242,6 +257,7 @@ class Discriminator(nn.Module):
 # ---------------------------------------------------------------------------
 # Feature bank extraction
 # ---------------------------------------------------------------------------
+
 
 def _extract_features(
     extractor: FeatureExtractor,
@@ -295,8 +311,11 @@ def build_feature_bank(
     n_workers = min(4, max(1, len(base_dataset)))
 
     base_loader = DataLoader(
-        base_dataset, batch_size=batch_size, shuffle=False,
-        num_workers=n_workers, pin_memory=(device.type == "cuda"),
+        base_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=n_workers,
+        pin_memory=(device.type == "cuda"),
     )
 
     features, feat_h, feat_w = _extract_features(extractor, base_loader, device)
@@ -309,8 +328,11 @@ def build_feature_bank(
         for pass_idx in range(n_augment_passes - 1):
             aug_dataset = ImageFolderSimple(train_dir, transform=aug_transform)
             aug_loader = DataLoader(
-                aug_dataset, batch_size=batch_size, shuffle=False,
-                num_workers=n_workers, pin_memory=(device.type == "cuda"),
+                aug_dataset,
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=n_workers,
+                pin_memory=(device.type == "cuda"),
             )
             aug_features, _, _ = _extract_features(extractor, aug_loader, device)
             all_banks.append(aug_features)
@@ -326,6 +348,7 @@ def build_feature_bank(
 # ---------------------------------------------------------------------------
 # Training function
 # ---------------------------------------------------------------------------
+
 
 def train_simplenet(
     split_dir: str,
@@ -398,9 +421,13 @@ def train_simplenet(
     # ------------------------------------------------------------------
     # Guard: minimum training images
     # ------------------------------------------------------------------
-    train_dir = split_dir / "train" / "good"
+    # Support both new (ok/) and legacy (good/) directory names
+    train_dir = split_dir / "train" / "ok"
+    if not train_dir.is_dir():
+        train_dir = split_dir / "train" / "good"
     n_images = sum(
-        1 for p in train_dir.iterdir()
+        1
+        for p in train_dir.iterdir()
         if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
     )
 
@@ -455,19 +482,22 @@ def train_simplenet(
     adaptor = Adaptor(in_features, adaptor_dim).to(device)
     discriminator = Discriminator(adaptor_dim).to(device)
 
-    n_params = (
-        sum(p.numel() for p in adaptor.parameters())
-        + sum(p.numel() for p in discriminator.parameters())
+    n_params = sum(p.numel() for p in adaptor.parameters()) + sum(
+        p.numel() for p in discriminator.parameters()
     )
     logger.info(f"Trainable parameters: {n_params:,}")
 
     # Separate optimizers with different LRs (see module docstring).
     # Weight decay provides mild L2 regularization.
     optimizer_adapt = torch.optim.Adam(
-        adaptor.parameters(), lr=lr, weight_decay=weight_decay,
+        adaptor.parameters(),
+        lr=lr,
+        weight_decay=weight_decay,
     )
     optimizer_disc = torch.optim.Adam(
-        discriminator.parameters(), lr=disc_lr, weight_decay=weight_decay,
+        discriminator.parameters(),
+        lr=disc_lr,
+        weight_decay=weight_decay,
     )
 
     # Cosine annealing: smooth LR decay avoids the "LR cliff" problem
@@ -483,8 +513,10 @@ def train_simplenet(
     patch_bs = min(256, len(feature_bank))
     patch_dataset = TensorDataset(feature_bank)
     patch_loader = DataLoader(
-        patch_dataset, batch_size=patch_bs,
-        shuffle=True, drop_last=len(feature_bank) > patch_bs,
+        patch_dataset,
+        batch_size=patch_bs,
+        shuffle=True,
+        drop_last=len(feature_bank) > patch_bs,
     )
 
     adaptor.train()
@@ -529,9 +561,8 @@ def train_simplenet(
             d_anomaly = discriminator(anomaly_feats)
 
             # BCE labels: real features → 0, noise-perturbed → 1
-            loss_d = (
-                criterion(d_normal, torch.zeros_like(d_normal))
-                + criterion(d_anomaly, torch.ones_like(d_anomaly))
+            loss_d = criterion(d_normal, torch.zeros_like(d_normal)) + criterion(
+                d_anomaly, torch.ones_like(d_anomaly)
             )
 
             optimizer_disc.zero_grad()
@@ -574,10 +605,17 @@ def train_simplenet(
             best_epoch = epoch
             patience_counter = 0
             _save_checkpoint(
-                best_ckpt_path, adaptor, discriminator,
-                backbone, layers, adaptor_dim,
-                noise_std, image_size, in_features,
-                feat_h, feat_w,
+                best_ckpt_path,
+                adaptor,
+                discriminator,
+                backbone,
+                layers,
+                adaptor_dim,
+                noise_std,
+                image_size,
+                in_features,
+                feat_h,
+                feat_w,
             )
         else:
             patience_counter += 1
@@ -604,10 +642,17 @@ def train_simplenet(
 
     # Save last-epoch checkpoint (for comparison / debugging)
     _save_checkpoint(
-        last_ckpt_path, adaptor, discriminator,
-        backbone, layers, adaptor_dim,
-        noise_std, image_size, in_features,
-        feat_h, feat_w,
+        last_ckpt_path,
+        adaptor,
+        discriminator,
+        backbone,
+        layers,
+        adaptor_dim,
+        noise_std,
+        image_size,
+        in_features,
+        feat_h,
+        feat_w,
     )
 
     logger.info(
@@ -621,6 +666,7 @@ def train_simplenet(
 # ---------------------------------------------------------------------------
 # Checkpoint helper
 # ---------------------------------------------------------------------------
+
 
 def _save_checkpoint(
     path: Path,
@@ -671,33 +717,75 @@ if __name__ == "__main__":
         description="Train SimpleNet model",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--split-dir", type=str, required=True,
-                        help="Path to dataset split directory")
-    parser.add_argument("--output-dir", type=str, default="experiments/train_output",
-                        help="Path to save model checkpoint and logs")
+    parser.add_argument(
+        "--split-dir", type=str, required=True, help="Path to dataset split directory"
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="experiments/train_output",
+        help="Path to save model checkpoint and logs",
+    )
     parser.add_argument("--image-size", type=int, default=256)
     parser.add_argument("--backbone", type=str, default="wide_resnet50_2")
-    parser.add_argument("--batch-size", type=int, default=32,
-                        help="Image batch size for feature extraction")
-    parser.add_argument("--epochs", type=int, default=200,
-                        help="Maximum training epochs (early stopping may end sooner)")
-    parser.add_argument("--lr", type=float, default=2e-4,
-                        help="Adaptor learning rate (Adam)")
-    parser.add_argument("--disc-lr", type=float, default=1e-4,
-                        help="Discriminator learning rate (Adam), typically lr/2")
-    parser.add_argument("--noise-std", type=float, default=0.015,
-                        help="Gaussian noise std for synthetic anomalies "
-                             "(paper default: 0.015; try 0.01–0.05)")
-    parser.add_argument("--adaptor-dim", type=int, default=512,
-                        help="Output dimension of the 2-layer adaptor MLP")
-    parser.add_argument("--weight-decay", type=float, default=1e-5,
-                        help="L2 regularization for both optimizers")
-    parser.add_argument("--patience", type=int, default=30,
-                        help="Early stopping patience (epochs w/o improvement)")
-    parser.add_argument("--n-augment-passes", type=int, default=1,
-                        help="Feature extraction passes (1=base, >1=base+augmented)")
-    parser.add_argument("--min-train-images", type=int, default=50,
-                        help="Minimum OK images required to start training")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=32,
+        help="Image batch size for feature extraction",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=200,
+        help="Maximum training epochs (early stopping may end sooner)",
+    )
+    parser.add_argument(
+        "--lr", type=float, default=2e-4, help="Adaptor learning rate (Adam)"
+    )
+    parser.add_argument(
+        "--disc-lr",
+        type=float,
+        default=1e-4,
+        help="Discriminator learning rate (Adam), typically lr/2",
+    )
+    parser.add_argument(
+        "--noise-std",
+        type=float,
+        default=0.015,
+        help="Gaussian noise std for synthetic anomalies "
+        "(paper default: 0.015; try 0.01–0.05)",
+    )
+    parser.add_argument(
+        "--adaptor-dim",
+        type=int,
+        default=512,
+        help="Output dimension of the 2-layer adaptor MLP",
+    )
+    parser.add_argument(
+        "--weight-decay",
+        type=float,
+        default=1e-5,
+        help="L2 regularization for both optimizers",
+    )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=30,
+        help="Early stopping patience (epochs w/o improvement)",
+    )
+    parser.add_argument(
+        "--n-augment-passes",
+        type=int,
+        default=1,
+        help="Feature extraction passes (1=base, >1=base+augmented)",
+    )
+    parser.add_argument(
+        "--min-train-images",
+        type=int,
+        default=50,
+        help="Minimum OK images required to start training",
+    )
 
     args = parser.parse_args()
 

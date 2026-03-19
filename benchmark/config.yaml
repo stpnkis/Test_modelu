@@ -1,0 +1,35 @@
+# Benchmark configuration
+# ======================
+# This is the single configuration file for the benchmark.
+# CLI flags override values here.
+
+dataset_id: "casting"
+
+seeds: [42, 1337, 2026]
+
+n_train_ok: 100
+
+preprocessing_mode: "baseline" # baseline | high_accuracy | edge_safe
+image_size: 224 # derived from mode, but explicit for clarity
+
+batch_size_eval: 1 # always 1 for latency measurement
+
+models:
+  - patchcore
+  - rd_plus_plus
+  - simplenet
+  - anomalydino
+
+# Thresholding
+threshold_strategy: "quantile"
+threshold_quantile_p: 0.99
+
+# Runtime profiling
+warmup_iterations: 10
+measured_iterations: 30
+
+# Paths (relative to repository root)
+paths:
+  datasets_root: "datasets"
+  splits_root: "splits"
+  experiments_root: "experiments"

@@ -9,13 +9,19 @@ services:
   patchcore:
     build: .
     shm_size: '8gb'
+    environment:
+      - PYTHONPATH=/app
     volumes:
-      # Shared dataset from repository root (read-only)
+      # Datasets (read-only)
+      - ../../datasets:/app/datasets:ro
+      # Legacy dataset mount (backward compat)
       - ../../dataset:/app/dataset:ro
-      # Experiment results persist in repository root (per-model subfolder)
-      - ../../experiments/patchcore:/app/experiments
-      # Dataset splits (generated during experiments)
-      - ../../splits/patchcore:/app/splits
+      # Centralized splits (shared across models)
+      - ../../splits:/app/splits
+      # Centralized experiment results (shared across models)
+      - ../../experiments:/app/experiments
+      # Shared benchmark module
+      - ../../shared:/app/shared:ro
       # Live source code mount — edit without rebuilding the image
       - ./src:/app/src
     deploy:

@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+# Use importlib import mode to avoid name collisions across
+# models/*/tests/ directories that share the same filenames.
+addopts = "--import-mode=importlib"
+testpaths = ["tests", "models"]

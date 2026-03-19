@@ -12,13 +12,19 @@ services:
   anomalydino:
     build: .
     shm_size: "8gb"
+    environment:
+      - PYTHONPATH=/app
     volumes:
-      # Shared dataset (read-only)
+      # Datasets (read-only)
+      - ../../datasets:/app/datasets:ro
+      # Legacy dataset mount (backward compat)
       - ../../dataset:/app/dataset:ro
-      # Experiment outputs (per-model subfolder)
-      - ../../experiments/anomalydino:/app/experiments
-      # Dataset splits
-      - ../../splits/anomalydino:/app/splits
+      # Centralized splits (shared across models)
+      - ../../splits:/app/splits
+      # Centralized experiment results (shared across models)
+      - ../../experiments:/app/experiments
+      # Shared benchmark module
+      - ../../shared:/app/shared:ro
       # Live source mount — edit code without rebuilding the image
       - ./src:/app/src
       - ./tests:/app/tests

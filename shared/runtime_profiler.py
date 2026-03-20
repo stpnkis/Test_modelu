@@ -121,8 +121,8 @@ def profile_model(
         model_only_fn:   Pure inference (no preprocessing, no disk I/O).
         end_to_end_fn:   Preprocessing + H2D + inference + postprocess.
         device:          Torch device.
-        warmup:          Warmup iterations.
-        iterations:      Measured iterations.
+        warmup:          Warmup iterations (minimum 10).
+        iterations:      Measured iterations (minimum 30).
         preprocessing_mode: Name of the preprocessing mode used.
         image_size:      Final image size.
         config_snapshot: Arbitrary config dict to store with results.
@@ -130,7 +130,16 @@ def profile_model(
 
     Returns:
         RuntimeResult with all fields populated.
+
+    Raises:
+        ValueError: If warmup < 10 or iterations < 30 (protocol violation).
     """
+    if warmup < 10:
+        raise ValueError(f"Latency protocol requires warmup >= 10, got {warmup}.")
+    if iterations < 30:
+        raise ValueError(
+            f"Latency protocol requires measured iterations >= 30, got {iterations}."
+        )
     logger.info(
         "Profiling: warmup=%d  measured=%d  device=%s", warmup, iterations, device
     )

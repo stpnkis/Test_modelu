@@ -34,6 +34,8 @@ def aggregate_seeds(
     dataset_id: str,
     model_name: str,
     seeds: List[int],
+    preprocessing_mode: str = "baseline",
+    n_train: int = 100,
 ) -> Dict[str, Any]:
     """Aggregate results across seeds for a single model+dataset.
 
@@ -45,9 +47,21 @@ def aggregate_seeds(
     values_by_key: Dict[str, List[float]] = {k: [] for k in AGGREGATE_KEYS}
 
     for seed in seeds:
+        # Try new layout first, then fallback to legacy
         results_path = (
-            experiments_root / dataset_id / model_name / str(seed) / "results.json"
+            experiments_root
+            / dataset_id
+            / model_name
+            / f"mode={preprocessing_mode}"
+            / f"n_train={n_train}"
+            / f"seed={seed}"
+            / "results.json"
         )
+        if not results_path.exists():
+            # Legacy fallback
+            results_path = (
+                experiments_root / dataset_id / model_name / str(seed) / "results.json"
+            )
         if not results_path.exists():
             logger.warning("Missing results for seed %d: %s", seed, results_path)
             continue

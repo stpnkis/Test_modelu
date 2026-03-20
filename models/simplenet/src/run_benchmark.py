@@ -24,7 +24,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from shared.seed_utils import set_seed, worker_init_fn
-from shared.preprocessing import build_transforms, get_image_size
+from shared.preprocessing import (
+    build_transforms,
+    get_image_size,
+    validate_transform_pipeline,
+    log_transform_pipeline,
+)
 from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics, compute_aupro
 from shared.runtime_profiler import profile_model
@@ -136,6 +141,18 @@ def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     image_size = get_image_size(args.preprocessing_mode)
 
+    # ── Validate threshold config ────────────────────────────────────
+    logger.info(
+        "Threshold config: strategy=%s  quantile_p=%s",
+        args.threshold_strategy,
+        args.threshold_quantile_p,
+    )
+    assert args.threshold_strategy in (
+        "quantile",
+        "max",
+        "k_sigma",
+    ), f"Invalid threshold strategy received: {args.threshold_strategy}"
+
     # ── Load split ───────────────────────────────────────────────────
     split_dir = get_split_dir(
         args.splits_root, args.dataset_id, args.seed, args.n_train
@@ -150,9 +167,17 @@ def main() -> None:
     test_nok_dir = split_dir / "test" / "nok"
 
     transform = build_transforms(args.preprocessing_mode)
+    validate_transform_pipeline(transform)
+    log_transform_pipeline(transform, "simplenet")
 
     # ── Train ────────────────────────────────────────────────────────
     logger.info("Training SimpleNet ...")
+    if args.n_train < 50:
+        logger.warning(
+            "SimpleNet benchmark: n_train=%d is below the recommended minimum "
+            "of 50. Results may be less reliable with very few training images.",
+            args.n_train,
+        )
     fit_start = time.perf_counter()
     checkpoint_path = train_simplenet(
         split_dir=str(split_dir),
@@ -162,6 +187,8 @@ def main() -> None:
         image_size=image_size,
         backbone=args.backbone,
         epochs=args.epochs,
+        benchmark_transform=transform,
+        min_train_images=1,  # benchmark mode: allow all protocol sizes {10,25,50,100}
     )
     fit_time = time.perf_counter() - fit_start
 
@@ -278,6 +305,8 @@ def main() -> None:
             "threshold_quantile_p": args.threshold_quantile_p,
             "epochs": args.epochs,
         },
+        preprocessing_mode=args.preprocessing_mode,
+        n_train=args.n_train,
     )
 
     logger.info("Done. AUROC=%.4f  F1=%.4f", metrics["auroc"], metrics["f1"])

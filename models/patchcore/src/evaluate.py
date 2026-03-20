@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _extract_field(obj, *names):
     """Try to extract a named field from an object or dict."""
     for name in names:
@@ -75,6 +76,7 @@ def _label_from_path(path: str) -> int:
 # ---------------------------------------------------------------------------
 # Main evaluation
 # ---------------------------------------------------------------------------
+
 
 def evaluate_patchcore(
     split_dir: str,
@@ -110,7 +112,9 @@ def evaluate_patchcore(
         abnormal_dir="test/defective",
         normal_test_dir="test/good",
         task="classification",
-        image_size=(image_size, image_size) if isinstance(image_size, int) else image_size,
+        image_size=(
+            (image_size, image_size) if isinstance(image_size, int) else image_size
+        ),
         train_batch_size=batch_size,
         eval_batch_size=batch_size,
     )
@@ -143,7 +147,9 @@ def evaluate_patchcore(
     # logger.info(f"anomalib test results: {test_results}")
 
     # 3b. engine.predict() -> per-image predictions
-    predictions = engine.predict(model=model, datamodule=datamodule, ckpt_path=checkpoint_path)
+    predictions = engine.predict(
+        model=model, datamodule=datamodule, ckpt_path=checkpoint_path
+    )
 
     # ------------------------------------------------------------------
     # Step 4: Collect per-image scores and ground-truth labels
@@ -214,6 +220,7 @@ def evaluate_patchcore(
 # Results persistence
 # ---------------------------------------------------------------------------
 
+
 def save_results(metrics: dict, results_path: str, n_train: int) -> None:
     """Append one experiment's metrics to the results CSV.
 
@@ -248,10 +255,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate PatchCore model")
     parser.add_argument("--split-dir", type=str, required=True)
     parser.add_argument("--checkpoint", type=str, required=True)
-    parser.add_argument("--n-train", type=int, required=True,
-                        help="Number of training images (recorded in CSV)")
-    parser.add_argument("--results-csv", type=str,
-                        default="experiments/results.csv")
+    parser.add_argument(
+        "--n-train",
+        type=int,
+        required=True,
+        help="Number of training images (recorded in CSV)",
+    )
+    parser.add_argument("--results-csv", type=str, default="experiments/results.csv")
     parser.add_argument("--image-size", type=int, default=256)
     parser.add_argument("--batch-size", type=int, default=32)
 

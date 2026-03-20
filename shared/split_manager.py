@@ -255,3 +255,57 @@ def load_split_manifest(
     """Load a previously created split manifest."""
     split_dir = get_split_dir(splits_root, dataset_id, seed, n_train)
     return load_manifest(split_dir / "manifest.json")
+
+
+def validate_split_invariance(
+    splits_root: str | Path,
+    dataset_id: str,
+    seed: int,
+    n_train_values: List[int],
+) -> None:
+    """Validate the few-shot invariant: for a fixed (dataset_id, seed),
+    val and test must be identical across all n_train values.
+
+    Raises:
+        RuntimeError: If val or test files differ across n_train values.
+    """
+    if len(n_train_values) < 2:
+        return
+
+    ref_n = n_train_values[0]
+    ref_manifest = load_split_manifest(splits_root, dataset_id, seed, ref_n)
+    ref_val = sorted(ref_manifest["files"]["val_ok"])
+    ref_test_ok = sorted(ref_manifest["files"]["test_ok"])
+    ref_test_nok = sorted(ref_manifest["files"]["test_nok"])
+
+    for n in n_train_values[1:]:
+        m = load_split_manifest(splits_root, dataset_id, seed, n)
+        val = sorted(m["files"]["val_ok"])
+        test_ok = sorted(m["files"]["test_ok"])
+        test_nok = sorted(m["files"]["test_nok"])
+
+        if val != ref_val:
+            raise RuntimeError(
+                f"Split invariance violated: val/ok differs between "
+                f"n_train={ref_n} and n_train={n} for "
+                f"dataset={dataset_id}, seed={seed}."
+            )
+        if test_ok != ref_test_ok:
+            raise RuntimeError(
+                f"Split invariance violated: test/ok differs between "
+                f"n_train={ref_n} and n_train={n} for "
+                f"dataset={dataset_id}, seed={seed}."
+            )
+        if test_nok != ref_test_nok:
+            raise RuntimeError(
+                f"Split invariance violated: test/nok differs between "
+                f"n_train={ref_n} and n_train={n} for "
+                f"dataset={dataset_id}, seed={seed}."
+            )
+
+    logger.info(
+        "Split invariance validated: dataset=%s seed=%d n_train_values=%s",
+        dataset_id,
+        seed,
+        n_train_values,
+    )

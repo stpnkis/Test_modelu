@@ -291,6 +291,7 @@ def build_feature_bank(
     image_size: int,
     batch_size: int,
     n_augment_passes: int = 1,
+    benchmark_transform=None,
 ) -> tuple[torch.Tensor, int, int, int]:
     """Build the feature bank with optional augmentation passes.
 
@@ -301,12 +302,21 @@ def build_feature_bank(
         image_size:        Image resize target.
         batch_size:        Batch size for feature extraction.
         n_augment_passes:  Total passes (1 = base only, >1 = base + augmented).
+                           Ignored in benchmark mode (benchmark_transform set).
+        benchmark_transform: If set, use this transform exclusively (no local
+                           transforms, no augmentation). For benchmark mode.
 
     Returns:
         (feature_bank, feat_h, feat_w, in_channels)
     """
     # --- Base pass (deterministic, no augmentation) ---
-    base_transform = make_transform(image_size)
+    if benchmark_transform is not None:
+        base_transform = benchmark_transform
+        # In benchmark mode, disable augmentation
+        n_augment_passes = 1
+    else:
+        base_transform = make_transform(image_size)
+
     base_dataset = ImageFolderSimple(train_dir, transform=base_transform)
     n_workers = min(4, max(1, len(base_dataset)))
 
@@ -365,6 +375,7 @@ def train_simplenet(
     patience: int = 30,
     n_augment_passes: int = 1,
     min_train_images: int = 50,
+    benchmark_transform=None,
 ) -> str:
     """
     Train SimpleNet on a prepared dataset split.
@@ -464,6 +475,7 @@ def train_simplenet(
         image_size=image_size,
         batch_size=batch_size,
         n_augment_passes=n_augment_passes,
+        benchmark_transform=benchmark_transform,
     )
 
     logger.info(

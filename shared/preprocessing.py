@@ -190,3 +190,71 @@ def build_mask_transforms(mode: str = "baseline") -> T.Compose:
 
     steps.append(T.ToTensor())
     return T.Compose(steps)
+
+
+# ── Pipeline validation ──────────────────────────────────────────────────────
+
+
+def validate_transform_pipeline(pipeline: T.Compose) -> None:
+    """Validate that a transform pipeline contains no duplicate operations.
+
+    Raises ``RuntimeError`` if Normalize, Resize, or CenterCrop appear
+    more than once — a sign of double preprocessing.
+    """
+    counts = {"Normalize": 0, "Resize": 0, "CenterCrop": 0}
+
+    for t in pipeline.transforms:
+        cls_name = type(t).__name__
+        if cls_name in counts:
+            counts[cls_name] += 1
+        # Also check inside nested Compose
+        if isinstance(t, T.Compose):
+            for inner in t.transforms:
+                inner_name = type(inner).__name__
+                if inner_name in counts:
+                    counts[inner_name] += 1
+
+    duplicates = {k: v for k, v in counts.items() if v > 1}
+    if duplicates:
+        raise RuntimeError(
+            f"Benchmark pipeline validation failed: duplicate transforms "
+            f"detected: {duplicates}. This indicates double preprocessing. "
+            f"All models must use shared/preprocessing.build_transforms() "
+            f"as the single source of truth."
+        )
+
+
+def log_transform_pipeline(pipeline: T.Compose, model_name: str) -> None:
+    """Log the effective transform pipeline for auditability."""
+    import logging
+
+    _logger = logging.getLogger(__name__)
+    steps = [f"  {i}: {t}" for i, t in enumerate(pipeline.transforms)]
+    _logger.info(
+        "Effective transform pipeline for %s:\n%s", model_name, "\n".join(steps)
+    )
+
+
+def build_geometric_transforms(mode: str = "baseline") -> T.Compose:
+    """Build ONLY the geometric part of the pipeline (no ToTensor, no Normalize).
+
+    Useful for models like RD++ that need to inject noise between
+    geometry and normalization.
+    """
+    if mode not in PREPROCESSING_MODES:
+        raise ValueError(
+            f"Unknown preprocessing mode '{mode}'. "
+            f"Available: {sorted(PREPROCESSING_MODES)}"
+        )
+
+    steps: list = [T.Lambda(lambda img: img.convert("RGB"))]
+
+    if mode == "baseline":
+        steps.append(T.Resize(256, interpolation=T.InterpolationMode.BILINEAR))
+        steps.append(T.CenterCrop(224))
+    elif mode == "high_accuracy":
+        steps.append(T.Resize((448, 448), interpolation=T.InterpolationMode.BILINEAR))
+    elif mode == "edge_safe":
+        steps.append(ResizeKeepAspectAndPad(224))
+
+    return T.Compose(steps)

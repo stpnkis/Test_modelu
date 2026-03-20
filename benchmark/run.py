@@ -154,9 +154,21 @@ def main() -> None:
     # ── Aggregate only ───────────────────────────────────────────────
     if args.aggregate_only:
         for model_name in models:
-            summary = aggregate_seeds(experiments_root, dataset_id, model_name, seeds)
+            summary = aggregate_seeds(
+                experiments_root,
+                dataset_id,
+                model_name,
+                seeds,
+                preprocessing_mode=preprocessing_mode,
+                n_train=n_train,
+            )
             summary_path = (
-                Path(experiments_root) / dataset_id / model_name / "summary.json"
+                Path(experiments_root)
+                / dataset_id
+                / model_name
+                / f"mode={preprocessing_mode}"
+                / f"n_train={n_train}"
+                / "summary.json"
             )
             save_summary(summary, summary_path)
             print(f"\n{model_name}:")

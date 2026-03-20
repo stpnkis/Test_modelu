@@ -597,13 +597,19 @@ class TrainingDataset(Dataset):
       without requiring the numba dependency.
     """
 
-    def __init__(self, root: str | Path, image_size: int = 256) -> None:
+    def __init__(
+        self,
+        root: str | Path,
+        image_size: int = 256,
+        geometric_transform=None,
+    ) -> None:
         self.paths: list[Path] = sorted(
             p
             for p in Path(root).iterdir()
             if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
         )
         self.image_size = image_size
+        self.geometric_transform = geometric_transform
         self.normalize = transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
 
     def __len__(self) -> int:
@@ -635,7 +641,16 @@ class TrainingDataset(Dataset):
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         img = Image.open(self.paths[idx]).convert("RGB")
-        img = img.resize((self.image_size, self.image_size), Image.BILINEAR)
+
+        if self.geometric_transform is not None:
+            # Benchmark mode: apply shared geometric transforms, then to array
+            img = self.geometric_transform(img)
+
+        img = (
+            img.resize((self.image_size, self.image_size), Image.BILINEAR)
+            if self.geometric_transform is None
+            else img
+        )
         img_np = np.array(img, dtype=np.float32) / 255.0
         img_np = img_np.transpose(2, 0, 1)  # [3, H, W]
 
@@ -699,6 +714,8 @@ def train_rd_plus_plus(
     accumulation_steps: int = 2,
     patience: int = 30,
     min_train_images: int = 10,
+    benchmark_geometric_transform=None,
+    benchmark_mode: bool = False,
 ) -> str:
     """
     Train RD++ on a prepared dataset split.
@@ -760,15 +777,28 @@ def train_rd_plus_plus(
     # ------------------------------------------------------------------
     # Step 1: Data
     # ------------------------------------------------------------------
-    train_dataset = TrainingDataset(train_dir, image_size=image_size)
-    n_workers = min(4, max(1, len(train_dataset)))
+    train_dataset = TrainingDataset(
+        train_dir,
+        image_size=image_size,
+        geometric_transform=benchmark_geometric_transform,
+    )
+    # In benchmark mode, use num_workers=0 to ensure np.random reproducibility
+    # (TrainingDataset uses np.random for pseudo-anomaly generation).
+    if benchmark_mode:
+        n_workers = 0
+        dl_generator = torch.Generator()
+        dl_generator.manual_seed(42)  # seeded from set_seed() earlier
+    else:
+        n_workers = min(4, max(1, len(train_dataset)))
+        dl_generator = None
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=n_workers,
-        pin_memory=(device.type == "cuda"),
+        pin_memory=(device.type == "cuda") and n_workers > 0,
         drop_last=(len(train_dataset) > batch_size),
+        generator=dl_generator,
     )
 
     # ------------------------------------------------------------------

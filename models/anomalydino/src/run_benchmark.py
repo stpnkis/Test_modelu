@@ -26,7 +26,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from shared.seed_utils import set_seed
-from shared.preprocessing import build_transforms, get_image_size
+from shared.preprocessing import (
+    build_transforms,
+    get_image_size,
+    validate_transform_pipeline,
+    log_transform_pipeline,
+)
 from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics, compute_aupro
 from shared.runtime_profiler import profile_model
@@ -95,6 +100,18 @@ def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     image_size = get_image_size(args.preprocessing_mode)
 
+    # ── Validate threshold config ────────────────────────────────────
+    logger.info(
+        "Threshold config: strategy=%s  quantile_p=%s",
+        args.threshold_strategy,
+        args.threshold_quantile_p,
+    )
+    assert args.threshold_strategy in (
+        "quantile",
+        "max",
+        "k_sigma",
+    ), f"Invalid threshold strategy received: {args.threshold_strategy}"
+
     # ── Load split manifest ──────────────────────────────────────────
     split_dir = get_split_dir(
         args.splits_root, args.dataset_id, args.seed, args.n_train
@@ -112,6 +129,8 @@ def main() -> None:
 
     # ── Shared preprocessing ─────────────────────────────────────────
     transform = build_transforms(args.preprocessing_mode)
+    validate_transform_pipeline(transform)
+    log_transform_pipeline(transform, "anomalydino")
 
     # ── Build memory bank (training) ─────────────────────────────────
     logger.info("Building AnomalyDINO memory bank ...")
@@ -231,6 +250,8 @@ def main() -> None:
             "threshold_strategy": args.threshold_strategy,
             "threshold_quantile_p": args.threshold_quantile_p,
         },
+        preprocessing_mode=args.preprocessing_mode,
+        n_train=args.n_train,
     )
 
     logger.info("Done. AUROC=%.4f  F1=%.4f", metrics["auroc"], metrics["f1"])

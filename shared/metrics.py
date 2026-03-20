@@ -149,6 +149,16 @@ def compute_aupro(
             ),
         }
 
+    # Validate shapes match between anomaly maps and masks
+    for i, (amap, mask) in enumerate(zip(anomaly_maps, masks)):
+        if amap.shape != mask.shape:
+            raise RuntimeError(
+                f"AU-PRO shape mismatch at index {i}: "
+                f"anomaly_map shape={amap.shape} vs mask shape={mask.shape}. "
+                f"Ensure masks use the same geometric transforms as images "
+                f"with nearest interpolation."
+            )
+
     fpr, pro = _compute_pro_curve(anomaly_maps, masks)
 
     # Sort by FPR ascending

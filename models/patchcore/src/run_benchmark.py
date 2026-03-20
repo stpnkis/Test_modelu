@@ -30,7 +30,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from shared.seed_utils import set_seed, worker_init_fn
-from shared.preprocessing import build_transforms, get_image_size
+from shared.preprocessing import (
+    build_transforms,
+    get_image_size,
+    validate_transform_pipeline,
+    log_transform_pipeline,
+)
 from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics, compute_aupro
 from shared.runtime_profiler import profile_model
@@ -120,6 +125,18 @@ def main() -> None:
     device_str = "auto"
     image_size = get_image_size(args.preprocessing_mode)
 
+    # ── Validate threshold config ────────────────────────────────────
+    logger.info(
+        "Threshold config: strategy=%s  quantile_p=%s",
+        args.threshold_strategy,
+        args.threshold_quantile_p,
+    )
+    assert args.threshold_strategy in (
+        "quantile",
+        "max",
+        "k_sigma",
+    ), f"Invalid threshold strategy received: {args.threshold_strategy}"
+
     # ── Load split ───────────────────────────────────────────────────
     split_dir = get_split_dir(
         args.splits_root, args.dataset_id, args.seed, args.n_train
@@ -136,11 +153,13 @@ def main() -> None:
     # ── Train PatchCore via anomalib ─────────────────────────────────
     # We use anomalib's Folder datamodule for training because PatchCore's
     # memory bank building is tightly coupled to anomalib's Engine.
-    # IMPORTANT: We pass the same image_size to ensure consistency.
-    # anomalib will apply its own Resize to image_size — this is the ONLY
-    # transform we allow anomalib to apply. We verify no double processing
-    # occurs by using the shared image_size.
+    # We pass our shared transforms as train_transform / eval_transform
+    # to override anomalib's implicit preprocessing pipeline.
     logger.info("Training PatchCore via anomalib ...")
+    transform = build_transforms(args.preprocessing_mode)
+    validate_transform_pipeline(transform)
+    log_transform_pipeline(transform, "patchcore")
+
     fit_start = time.perf_counter()
 
     output_dir = (
@@ -148,17 +167,40 @@ def main() -> None:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    datamodule = Folder(
-        name=args.dataset_id,
-        root=str(split_dir),
-        normal_dir="train/ok",
-        abnormal_dir="test/nok",
-        normal_test_dir="test/ok",
-        task="classification",
-        image_size=(image_size, image_size),
-        train_batch_size=32,
-        eval_batch_size=32,
-    )
+    # Try to pass explicit transforms to anomalib to prevent implicit ones.
+    # anomalib >= 1.2 supports train_transform / eval_transform params.
+    try:
+        datamodule = Folder(
+            name=args.dataset_id,
+            root=str(split_dir),
+            normal_dir="train/ok",
+            abnormal_dir="test/nok",
+            normal_test_dir="test/ok",
+            task="classification",
+            image_size=(image_size, image_size),
+            train_transform=transform,
+            eval_transform=transform,
+            train_batch_size=32,
+            eval_batch_size=32,
+        )
+        logger.info("Using explicit shared transforms for anomalib Folder datamodule.")
+    except TypeError:
+        # Fallback for anomalib versions that don't support transform params
+        logger.warning(
+            "anomalib Folder does not accept train_transform/eval_transform. "
+            "Falling back to image_size matching. Verify no double preprocessing."
+        )
+        datamodule = Folder(
+            name=args.dataset_id,
+            root=str(split_dir),
+            normal_dir="train/ok",
+            abnormal_dir="test/nok",
+            normal_test_dir="test/ok",
+            task="classification",
+            image_size=(image_size, image_size),
+            train_batch_size=32,
+            eval_batch_size=32,
+        )
 
     model = Patchcore(
         backbone=args.backbone,
@@ -199,16 +241,29 @@ def main() -> None:
 
     # Score val/ok for threshold
     logger.info("Scoring val/ok for threshold ...")
-    val_datamodule = Folder(
-        name=f"{args.dataset_id}_val",
-        root=str(split_dir),
-        normal_dir="val/ok",
-        abnormal_dir="test/nok",  # required by anomalib, not used for scoring val
-        normal_test_dir="val/ok",  # we score val/ok as "test" set
-        task="classification",
-        image_size=(image_size, image_size),
-        eval_batch_size=32,
-    )
+    try:
+        val_datamodule = Folder(
+            name=f"{args.dataset_id}_val",
+            root=str(split_dir),
+            normal_dir="val/ok",
+            abnormal_dir="test/nok",  # required by anomalib, not used for scoring val
+            normal_test_dir="val/ok",  # we score val/ok as "test" set
+            task="classification",
+            image_size=(image_size, image_size),
+            eval_transform=transform,
+            eval_batch_size=32,
+        )
+    except TypeError:
+        val_datamodule = Folder(
+            name=f"{args.dataset_id}_val",
+            root=str(split_dir),
+            normal_dir="val/ok",
+            abnormal_dir="test/nok",
+            normal_test_dir="val/ok",
+            task="classification",
+            image_size=(image_size, image_size),
+            eval_batch_size=32,
+        )
 
     val_predictions = engine.predict(
         model=model,
@@ -313,11 +368,9 @@ def main() -> None:
             "image_size": image_size,
             "threshold_strategy": args.threshold_strategy,
             "threshold_quantile_p": args.threshold_quantile_p,
-            "anomalib_note": "Training uses anomalib Folder datamodule transforms. "
-            "image_size matches shared preprocessing to prevent "
-            "double-resize. anomalib applies its own ImageNet "
-            "normalization which matches the shared defaults.",
         },
+        preprocessing_mode=args.preprocessing_mode,
+        n_train=args.n_train,
     )
 
     logger.info("Done. AUROC=%.4f  F1=%.4f", metrics["auroc"], metrics["f1"])

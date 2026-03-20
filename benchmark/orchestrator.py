@@ -37,17 +37,21 @@ def run_model_in_docker(
     preprocessing_mode: str,
     repo_root: Path,
     extra_args: Optional[List[str]] = None,
+    threshold_strategy: str = "quantile",
+    threshold_quantile_p: float = 0.99,
 ) -> int:
     """Launch a model's train+evaluate pipeline inside its Docker container.
 
     Args:
-        model_name:         e.g. ``"patchcore"``, ``"anomalydino"``
-        dataset_id:         Dataset identifier.
-        seed:               Random seed.
-        n_train:            Number of training OK images.
-        preprocessing_mode: Preprocessing mode name.
-        repo_root:          Repository root path.
-        extra_args:         Additional CLI args to pass to the model script.
+        model_name:          e.g. ``"patchcore"``, ``"anomalydino"``
+        dataset_id:          Dataset identifier.
+        seed:                Random seed.
+        n_train:             Number of training OK images.
+        preprocessing_mode:  Preprocessing mode name.
+        repo_root:           Repository root path.
+        extra_args:          Additional CLI args to pass to the model script.
+        threshold_strategy:  Threshold strategy name.
+        threshold_quantile_p: Quantile p for threshold strategy.
 
     Returns:
         Subprocess return code (0 = success).
@@ -72,6 +76,10 @@ def run_model_in_docker(
         str(n_train),
         "--preprocessing-mode",
         preprocessing_mode,
+        "--threshold-strategy",
+        threshold_strategy,
+        "--threshold-quantile-p",
+        str(threshold_quantile_p),
     ]
     if extra_args:
         cmd.extend(extra_args)
@@ -147,6 +155,8 @@ def orchestrate(
                 n_train=n_train,
                 preprocessing_mode=preprocessing_mode,
                 repo_root=repo_root_path,
+                threshold_strategy=threshold_strategy,
+                threshold_quantile_p=threshold_quantile_p,
             )
             if rc != 0:
                 logger.error(
@@ -162,8 +172,17 @@ def orchestrate(
             dataset_id=dataset_id,
             model_name=model_name,
             seeds=seeds,
+            preprocessing_mode=preprocessing_mode,
+            n_train=n_train,
         )
-        summary_path = Path(experiments_root) / dataset_id / model_name / "summary.json"
+        summary_path = (
+            Path(experiments_root)
+            / dataset_id
+            / model_name
+            / f"mode={preprocessing_mode}"
+            / f"n_train={n_train}"
+            / "summary.json"
+        )
         save_summary(summary, summary_path)
         results_map[model_name] = summary
 

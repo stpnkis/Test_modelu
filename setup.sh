@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup.sh — Create required directories after a fresh git clone.
+# setup.sh — Initialise workspace after a fresh git clone.
 # Run once: bash setup.sh
 
 set -e
@@ -13,13 +13,19 @@ mkdir -p datasets
 mkdir -p splits
 mkdir -p experiments
 
-# Legacy per-model directories (backward compatibility)
-for model in anomalydino simplenet patchcore rd_plus_plus; do
-    mkdir -p "experiments/$model/logs"
-done
-
 # Documentation
 mkdir -p docs
+
+# Install host-side Python dependencies (if a virtualenv is active)
+if command -v pip &>/dev/null; then
+    echo ""
+    echo "Installing Python dependencies..."
+    pip install -r requirements.txt
+else
+    echo ""
+    echo "WARNING: pip not found — install dependencies manually:"
+    echo "  pip install -r requirements.txt"
+fi
 
 echo ""
 echo "Done. Directory structure ready."

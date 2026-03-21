@@ -14,8 +14,8 @@ services:
     volumes:
       # Datasets (read-only)
       - ../../datasets:/app/datasets:ro
-      # Legacy dataset mount (backward compat)
-      - ../../dataset:/app/dataset:ro
+      # Git metadata for commit traceability in results
+      - ../../.git:/app/.git:ro
       # Centralized splits (shared across models)
       - ../../splits:/app/splits
       # Centralized experiment results (shared across models)

@@ -21,7 +21,11 @@ on industrial visual inspection data.
 ```bash
 # 1. Clone and set up directory structure
 git clone <repo-url> && cd Test_modelu
-bash setup.sh
+bash setup.sh          # creates dirs + installs Python deps
+
+# 1b. (alternative) manual install
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 
 # 2. Place your dataset
 #    datasets/<dataset_id>/ok/   ← normal (defect-free) images
@@ -161,4 +165,6 @@ python -m pytest tests/ -v
 - Docker with NVIDIA Container Toolkit (`nvidia-docker2`)
 - GPU with CUDA support (runs on CPU too, but significantly slower)
 - Python 3.10+ (for benchmark CLI on host)
-- PyTorch, torchvision, scikit-learn, scipy, PyYAML (for shared library)
+
+Host-side Python dependencies (installed via `pip install -r requirements.txt`):
+torch, torchvision, numpy, scikit-learn, scipy, PyYAML, Pillow, pytest

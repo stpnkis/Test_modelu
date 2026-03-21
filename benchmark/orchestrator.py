@@ -146,6 +146,9 @@ def orchestrate(
         logger.info("  MODEL: %s", model_name)
         logger.info("=" * 60)
 
+        seed_failed = False
+        failed_seed = None
+        failed_rc = None
         for seed in seeds:
             logger.info("  Seed: %d", seed)
             rc = run_model_in_docker(
@@ -160,11 +163,30 @@ def orchestrate(
             )
             if rc != 0:
                 logger.error(
-                    "FAILED: model=%s seed=%d returned code %d",
+                    "FAILED: model=%s seed=%d returned code %d — "
+                    "aborting remaining seeds for this model.",
                     model_name,
                     seed,
                     rc,
                 )
+                seed_failed = True
+                failed_seed = seed
+                failed_rc = rc
+                break
+
+        if seed_failed:
+            results_map[model_name] = {
+                "error": (
+                    f"Docker run failed for seed {failed_seed} "
+                    f"(exit code {failed_rc})"
+                ),
+                "model_name": model_name,
+                "dataset_id": dataset_id,
+            }
+            logger.warning(
+                "Skipping aggregation for %s due to seed failure.", model_name
+            )
+            continue
 
         # 4. Aggregate
         summary = aggregate_seeds(

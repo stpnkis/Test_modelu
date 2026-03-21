@@ -35,7 +35,7 @@ from shared.preprocessing import (
 from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics, compute_aupro
 from shared.runtime_profiler import profile_model
-from shared.results_io import save_results
+from shared.results_io import save_results, save_predictions_csv
 from shared.split_manager import get_split_dir, load_split_manifest
 from shared.dataset_schema import IMAGE_EXTENSIONS
 
@@ -232,6 +232,9 @@ def main() -> None:
 
     test_scores = ok_scores + nok_scores
     test_labels = ok_labels + nok_labels
+    test_paths = [str(p) for p in test_ok_ds.items] + [
+        str(p) for p in test_nok_ds.items
+    ]
 
     # ── Metrics ──────────────────────────────────────────────────────
     metrics = compute_image_metrics(test_labels, test_scores, threshold)
@@ -311,6 +314,21 @@ def main() -> None:
             "threshold_quantile_p": args.threshold_quantile_p,
             "epochs": args.epochs,
         },
+        preprocessing_mode=args.preprocessing_mode,
+        n_train=args.n_train,
+    )
+
+    # Save per-image predictions CSV for auditability
+    preds = [int(s >= threshold) for s in test_scores]
+    save_predictions_csv(
+        experiments_root=args.experiments_root,
+        dataset_id=args.dataset_id,
+        model_name="rd_plus_plus",
+        seed=args.seed,
+        image_paths=test_paths,
+        scores=test_scores,
+        labels=test_labels,
+        predictions=preds,
         preprocessing_mode=args.preprocessing_mode,
         n_train=args.n_train,
     )

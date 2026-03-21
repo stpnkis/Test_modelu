@@ -1,7 +1,7 @@
 # =============================================================================
 # Docker Compose - PatchCore Experiment
 # =============================================================================
-# Run from this directory: docker compose run --rm patchcore python src/experiment_runner.py
+# Run from this directory: docker compose run --rm patchcore python src/run_benchmark.py
 # GPU access via NVIDIA Container Toolkit (requires: docker context use default)
 # =============================================================================
 

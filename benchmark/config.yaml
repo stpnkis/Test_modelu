@@ -9,6 +9,9 @@ seeds: [42, 1337, 2026]
 
 n_train_ok: 100
 
+# Few-shot sample-efficiency study sizes
+few_shot_sizes: [10, 25, 50, 100]
+
 preprocessing_mode: "baseline" # baseline | high_accuracy | edge_safe
 image_size: 224 # derived from mode, but explicit for clarity
 

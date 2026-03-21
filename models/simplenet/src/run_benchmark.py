@@ -33,7 +33,7 @@ from shared.preprocessing import (
 from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics, compute_aupro
 from shared.runtime_profiler import profile_model
-from shared.results_io import save_results
+from shared.results_io import save_results, save_predictions_csv
 from shared.split_manager import get_split_dir, load_split_manifest
 from shared.dataset_schema import IMAGE_EXTENSIONS
 
@@ -244,6 +244,15 @@ def main() -> None:
 
     test_scores = test_ok_scores + test_nok_scores
     test_labels = test_ok_labels + test_nok_labels
+    test_paths = [
+        str(p)
+        for p in sorted(test_ok_dir.iterdir())
+        if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
+    ] + [
+        str(p)
+        for p in sorted(test_nok_dir.iterdir())
+        if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
+    ]
 
     # ── Metrics ──────────────────────────────────────────────────────
     metrics = compute_image_metrics(test_labels, test_scores, threshold)
@@ -305,6 +314,21 @@ def main() -> None:
             "threshold_quantile_p": args.threshold_quantile_p,
             "epochs": args.epochs,
         },
+        preprocessing_mode=args.preprocessing_mode,
+        n_train=args.n_train,
+    )
+
+    # Save per-image predictions CSV for auditability
+    preds = [int(s >= threshold) for s in test_scores]
+    save_predictions_csv(
+        experiments_root=args.experiments_root,
+        dataset_id=args.dataset_id,
+        model_name="simplenet",
+        seed=args.seed,
+        image_paths=test_paths,
+        scores=test_scores,
+        labels=test_labels,
+        predictions=preds,
         preprocessing_mode=args.preprocessing_mode,
         n_train=args.n_train,
     )

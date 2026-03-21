@@ -35,7 +35,7 @@ from shared.preprocessing import (
 from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics, compute_aupro
 from shared.runtime_profiler import profile_model
-from shared.results_io import save_results
+from shared.results_io import save_results, save_predictions_csv
 from shared.split_manager import load_split_manifest, get_split_dir
 from shared.dataset_schema import IMAGE_EXTENSIONS
 
@@ -177,16 +177,19 @@ def main() -> None:
     logger.info("Scoring test set ...")
     test_scores: List[float] = []
     test_labels: List[int] = []
+    test_paths: List[str] = []
 
     for img_path in _get_image_paths(test_ok_dir):
         score = _score_single_image(img_path, extractor, ref_norm, transform, device)
         test_scores.append(score)
         test_labels.append(0)
+        test_paths.append(str(img_path))
 
     for img_path in _get_image_paths(test_nok_dir):
         score = _score_single_image(img_path, extractor, ref_norm, transform, device)
         test_scores.append(score)
         test_labels.append(1)
+        test_paths.append(str(img_path))
 
     # ── Metrics ──────────────────────────────────────────────────────
     metrics = compute_image_metrics(test_labels, test_scores, threshold)
@@ -250,6 +253,21 @@ def main() -> None:
             "threshold_strategy": args.threshold_strategy,
             "threshold_quantile_p": args.threshold_quantile_p,
         },
+        preprocessing_mode=args.preprocessing_mode,
+        n_train=args.n_train,
+    )
+
+    # Save per-image predictions CSV for auditability
+    preds = [int(s >= threshold) for s in test_scores]
+    save_predictions_csv(
+        experiments_root=args.experiments_root,
+        dataset_id=args.dataset_id,
+        model_name="anomalydino",
+        seed=args.seed,
+        image_paths=test_paths,
+        scores=test_scores,
+        labels=test_labels,
+        predictions=preds,
         preprocessing_mode=args.preprocessing_mode,
         n_train=args.n_train,
     )

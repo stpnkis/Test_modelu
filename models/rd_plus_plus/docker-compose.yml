@@ -1,7 +1,7 @@
 # =============================================================================
 # Docker Compose - RD++ Experiment
 # =============================================================================
-# Run from this directory: docker compose run --rm rd_plus_plus python src/experiment_runner.py
+# Run from this directory: docker compose run --rm rd_plus_plus python src/run_benchmark.py
 # GPU access via NVIDIA Container Toolkit (requires: docker context use default)
 # =============================================================================
 
@@ -24,8 +24,6 @@ services:
       - ../../shared:/app/shared:ro
       # Live source code mount — edit without rebuilding the image
       - ./src:/app/src
-      # Tests mount — edit without rebuilding the image
-      - ./tests:/app/tests
     deploy:
       resources:
         reservations:

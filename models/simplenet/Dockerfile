@@ -8,7 +8,7 @@
 # Reproduce on a new machine:
 #   docker context use default          # must NOT use Docker Desktop context
 #   docker compose build
-#   docker compose run --rm simplenet python src/experiment_runner.py
+#   docker compose run --rm simplenet python src/run_benchmark.py
 # =============================================================================
 
 # --platform locks the image to amd64 — avoids accidental arm64 pulls on
@@ -38,7 +38,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project source code (live-edited via docker-compose volume mount)
 COPY src/ src/
-COPY tests/ tests/
 
 # Default: open a bash shell; override with `docker compose run simplenet python ...`
 CMD ["bash"]

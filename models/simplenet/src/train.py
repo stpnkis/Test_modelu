@@ -57,7 +57,7 @@ from torchvision import models, transforms
 
 logger = logging.getLogger(__name__)
 
-# Common image file extensions (consistent with dataset_splitter)
+# Common image file extensions (consistent with shared/dataset_schema)
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"}
 
 # ImageNet normalisation constants

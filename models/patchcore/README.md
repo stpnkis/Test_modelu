@@ -1,54 +1,42 @@
-# PatchCore — Anomaly Detection Experiments
+# PatchCore — Anomaly Detection
 
-Automated experiments evaluating how many normal (OK) training images PatchCore needs
-to reliably detect defects (NOK images) on a casting dataset.
+PatchCore (Roth et al., CVPR 2022) using anomalib, with a WideResNet-50-2
+backbone and coreset subsampling.
 
-## Quick start
+## Official benchmark
 
-```bash
-# From this directory (models/patchcore/)
-docker compose build
-docker compose run --rm patchcore python src/experiment_runner.py
-```
-
-Results are saved to `../../experiments/patchcore/results.csv`.
-
-## What the experiment does
-
-Trains and evaluates PatchCore on training sets of different sizes:
-`n_train ∈ [10, 20, 50, 100, 200]`
-
-For each size it:
-1. Creates a dataset split (symlinks into `../../dataset/`)
-2. Trains PatchCore on `n_train` OK images
-3. Evaluates on a fixed test set (200 OK + all NOK images)
-4. Records AUROC, Accuracy, Precision, Recall to a shared CSV
-
-## Run a single size
+PatchCore is run **only** through the centralized benchmark pipeline:
 
 ```bash
-docker compose run --rm patchcore python src/experiment_runner.py --sizes 10
+# From the repository root
+python benchmark/run.py --dataset casting --model patchcore
+
+# Few-shot evaluation
+python benchmark/run.py --dataset casting --model patchcore --few-shot
 ```
 
-## Dataset layout expected
-
-```
-../../dataset/
-    ok/     # Normal (defect-free) images
-    nok/    # Anomalous (defective) images
-```
-
-## Requirements
-
-- Docker with NVIDIA Container Toolkit
-- GPU with CUDA support
-- `docker context use default` (not Docker Desktop context)
+The entrypoint inside the Docker container is `src/run_benchmark.py`,
+invoked automatically by `benchmark/orchestrator.py`.
 
 ## Source files
 
 | File | Purpose |
 |------|---------|
-| `src/dataset_splitter.py` | Creates train/test splits via symlinks |
-| `src/train.py` | Trains PatchCore using anomalib |
-| `src/evaluate.py` | Runs inference, computes sklearn metrics |
-| `src/experiment_runner.py` | Orchestrates the full experiment loop |
+| `src/run_benchmark.py` | Benchmark entrypoint — trains, scores, computes metrics via `shared/` |
+| `src/train.py` | PatchCore training using anomalib |
+
+All benchmark logic (splits, thresholding, metrics, results I/O, runtime
+profiling, seed handling) lives in `shared/` and is shared across all models.
+
+## How PatchCore works
+
+1. **Feature extraction** — Frozen WideResNet-50-2 extracts patch-level features
+2. **Coreset subsampling** — Greedy coreset reduces the memory bank to a representative subset
+3. **Inference** — k-NN distance to the nearest coreset patch = anomaly score
+
+No gradient training — the model is fully determined by the training images.
+
+## Requirements
+
+- Docker with NVIDIA Container Toolkit
+- GPU with CUDA support

@@ -85,7 +85,9 @@ Test_modelu/
 │   ├── test_thresholding.py
 │   ├── test_metrics.py
 │   ├── test_dataset_schema.py
-│   └── test_smoke.py
+│   ├── test_smoke.py
+│   ├── test_benchmark_fixes.py
+│   └── test_protocol_compliance.py  ← full protocol compliance checks
 └── models/
     ├── anomalydino/          ← AnomalyDINO (DINOv2 ViT-B/14 memory bank)
     ├── patchcore/            ← PatchCore (anomalib, WideResNet-50-2 coreset)
@@ -114,6 +116,9 @@ python benchmark/run.py --dataset casting --model anomalydino
 
 # All models
 python benchmark/run.py --dataset casting --all-models
+
+# Few-shot evaluation (sweep over n_train = 10, 25, 50, 100)
+python benchmark/run.py --dataset casting --model patchcore --few-shot
 
 # Custom settings
 python benchmark/run.py --dataset casting --model patchcore \

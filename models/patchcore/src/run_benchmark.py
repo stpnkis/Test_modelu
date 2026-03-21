@@ -39,7 +39,7 @@ from shared.preprocessing import (
 from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics, compute_aupro
 from shared.runtime_profiler import profile_model
-from shared.results_io import save_results
+from shared.results_io import save_results, save_predictions_csv
 from shared.split_manager import get_split_dir, load_split_manifest
 from shared.dataset_schema import IMAGE_EXTENSIONS
 
@@ -185,21 +185,14 @@ def main() -> None:
         )
         logger.info("Using explicit shared transforms for anomalib Folder datamodule.")
     except TypeError:
-        # Fallback for anomalib versions that don't support transform params
-        logger.warning(
-            "anomalib Folder does not accept train_transform/eval_transform. "
-            "Falling back to image_size matching. Verify no double preprocessing."
-        )
-        datamodule = Folder(
-            name=args.dataset_id,
-            root=str(split_dir),
-            normal_dir="train/ok",
-            abnormal_dir="test/nok",
-            normal_test_dir="test/ok",
-            task="classification",
-            image_size=(image_size, image_size),
-            train_batch_size=32,
-            eval_batch_size=32,
+        # Fallback for anomalib versions that don't support transform params.
+        # This is UNSAFE: anomalib will apply its own internal preprocessing
+        # on top of ours, causing double-normalize or double-resize.
+        raise RuntimeError(
+            "Your anomalib version does not accept train_transform/eval_transform. "
+            "Upgrade to anomalib >= 1.2 or manually verify that anomalib's "
+            "internal transforms are disabled. Double preprocessing will produce "
+            "incorrect benchmark results."
         )
 
     model = Patchcore(
@@ -372,6 +365,31 @@ def main() -> None:
         preprocessing_mode=args.preprocessing_mode,
         n_train=args.n_train,
     )
+
+    # Save per-image predictions CSV for auditability
+    preds = [int(s >= threshold) for s in all_scores]
+    # Collect image paths from test predictions
+    all_paths = []
+    for batch in test_predictions:
+        paths = _extract_field(batch, "image_path", "image_paths")
+        if paths is not None:
+            if isinstance(paths, (list, tuple)):
+                all_paths.extend(str(p) for p in paths)
+            else:
+                all_paths.append(str(paths))
+    if len(all_paths) == len(all_scores):
+        save_predictions_csv(
+            experiments_root=args.experiments_root,
+            dataset_id=args.dataset_id,
+            model_name="patchcore",
+            seed=args.seed,
+            image_paths=all_paths,
+            scores=all_scores,
+            labels=all_labels,
+            predictions=preds,
+            preprocessing_mode=args.preprocessing_mode,
+            n_train=args.n_train,
+        )
 
     logger.info("Done. AUROC=%.4f  F1=%.4f", metrics["auroc"], metrics["f1"])
 

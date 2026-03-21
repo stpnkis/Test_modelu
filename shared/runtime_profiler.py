@@ -27,7 +27,9 @@ class RuntimeResult:
     """Container for runtime profiling results."""
 
     model_only_latency_ms: float = 0.0
+    model_only_latency_std_ms: float = 0.0
     end_to_end_latency_ms: float = 0.0
+    end_to_end_latency_std_ms: float = 0.0
     gpu_peak_memory_mb: float = 0.0
     fit_time_s: float = 0.0
     warmup_iterations: int = 0
@@ -54,7 +56,7 @@ def measure_latency(
     device: torch.device,
     warmup: int = 10,
     iterations: int = 30,
-) -> float:
+) -> tuple:
     """Measure the average latency of *fn* in milliseconds.
 
     Args:
@@ -64,7 +66,7 @@ def measure_latency(
         iterations: Number of measured iterations.
 
     Returns:
-        Average latency in milliseconds.
+        Tuple of (mean_ms, std_ms).
     """
     # Warmup
     for _ in range(warmup):
@@ -82,7 +84,8 @@ def measure_latency(
         times.append(elapsed * 1000)  # ms
 
     avg = sum(times) / len(times)
-    return avg
+    std = (sum((t - avg) ** 2 for t in times) / max(len(times) - 1, 1)) ** 0.5
+    return avg, std
 
 
 def measure_gpu_peak_memory(
@@ -144,13 +147,17 @@ def profile_model(
         "Profiling: warmup=%d  measured=%d  device=%s", warmup, iterations, device
     )
 
-    model_only_ms = measure_latency(model_only_fn, device, warmup, iterations)
-    e2e_ms = measure_latency(end_to_end_fn, device, warmup, iterations)
+    model_only_ms, model_only_std = measure_latency(
+        model_only_fn, device, warmup, iterations
+    )
+    e2e_ms, e2e_std = measure_latency(end_to_end_fn, device, warmup, iterations)
     gpu_peak = measure_gpu_peak_memory(model_only_fn, device)
 
     result = RuntimeResult(
         model_only_latency_ms=round(model_only_ms, 3),
+        model_only_latency_std_ms=round(model_only_std, 3),
         end_to_end_latency_ms=round(e2e_ms, 3),
+        end_to_end_latency_std_ms=round(e2e_std, 3),
         gpu_peak_memory_mb=round(gpu_peak, 2),
         fit_time_s=round(fit_time_s, 2),
         warmup_iterations=warmup,

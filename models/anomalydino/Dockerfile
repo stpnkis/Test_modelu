@@ -7,7 +7,7 @@
 #
 # Reproduce:
 #   docker compose build
-#   docker compose run --rm anomalydino python src/experiment_runner.py
+#   docker compose run --rm anomalydino python src/run_benchmark.py
 #
 # Jetson Orin Nano:
 #   Replace the FROM line with the appropriate L4T PyTorch base image:
@@ -24,9 +24,9 @@ WORKDIR /app
 
 # System deps for Pillow / image handling
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git \
-        libgl1-mesa-glx \
-        libglib2.0-0 \
+    git \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin pip for reproducible resolves
@@ -38,6 +38,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Source code (overridden by volume mount during development)
 COPY src/ src/
-COPY tests/ tests/
 
 CMD ["bash"]

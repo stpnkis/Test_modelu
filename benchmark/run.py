@@ -34,7 +34,11 @@ import yaml
 from shared.aggregate import aggregate_seeds, format_latex_row, save_summary
 from shared.dataset_schema import validate_dataset
 from shared.split_manager import create_split
-from benchmark.orchestrator import orchestrate, run_model_in_docker
+from benchmark.orchestrator import (
+    orchestrate,
+    orchestrate_few_shot,
+    run_model_in_docker,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +117,11 @@ def main() -> None:
         action="store_true",
         help="Only validate the dataset (no training)",
     )
+    parser.add_argument(
+        "--few-shot",
+        action="store_true",
+        help="Run few-shot sample-efficiency study (sizes from config.yaml)",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
 
     args = parser.parse_args()
@@ -176,6 +185,43 @@ def main() -> None:
             print(f"  F1:     {summary['mean'].get('f1', 'N/A')}")
             print(f"  AU-PRO: {summary['mean'].get('aupro', 'N/A')}")
             print(f"\n  LaTeX:  {format_latex_row(summary)}")
+        return
+
+    # ── Few-shot study ─────────────────────────────────────────────
+    if args.few_shot:
+        few_shot_sizes = cfg.get("few_shot_sizes", [10, 25, 50, 100])
+        logger.info("=" * 70)
+        logger.info(
+            "  FEW-SHOT STUDY: dataset=%s  models=%s  sizes=%s",
+            dataset_id,
+            models,
+            few_shot_sizes,
+        )
+        logger.info("=" * 70)
+
+        results = orchestrate_few_shot(
+            dataset_id=dataset_id,
+            models=models,
+            seeds=seeds,
+            few_shot_sizes=few_shot_sizes,
+            preprocessing_mode=preprocessing_mode,
+            datasets_root=datasets_root,
+            splits_root=splits_root,
+            experiments_root=experiments_root,
+            repo_root=str(REPO_ROOT),
+            threshold_strategy=threshold_strategy,
+            threshold_quantile_p=threshold_quantile_p,
+        )
+
+        # Print summary
+        for model_name, by_n in results.items():
+            print(f"\n{'='*60}")
+            print(f"  {model_name} — Few-shot results")
+            print(f"{'='*60}")
+            for n, summary in sorted(by_n.items()):
+                auroc = summary.get("mean", {}).get("auroc", "N/A")
+                f1 = summary.get("mean", {}).get("f1", "N/A")
+                print(f"  n_train={n:>4d}  AUROC={auroc}  F1={f1}")
         return
 
     # ── Full benchmark ───────────────────────────────────────────────

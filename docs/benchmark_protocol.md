@@ -175,9 +175,49 @@ Module: `shared/runtime_profiler.py`
 | `e2e_latency_std` | ms | Std dev of end-to-end time |
 | `gpu_peak_memory_mb` | MB | Peak GPU memory during inference |
 
+`measure_latency()` returns `(mean, std)` — both values are stored
+in the `RuntimeResult` dataclass and persisted in the JSON results.
+
 ---
 
-## 6. Multi-seed aggregation
+## 6. Results & auditability
+
+Module: `shared/results_io.py`
+
+### Per-seed JSON
+
+`save_results()` persists a JSON file per `(model, dataset, seed, n_train)`.
+Each file includes an `"environment"` block with:
+
+| Field | Example |
+|---|---|
+| `git_sha` | `4efbe247…` |
+| `timestamp` | ISO-8601 UTC |
+| `platform` | `Linux-6.x-x86_64` |
+| `python_version` | `3.10.12` |
+| `torch_version` | `2.1.0+cu121` |
+| `cuda_available` | `true` |
+| `gpu_name` | `NVIDIA RTX 4090` |
+| `gpu_memory_total_mb` | `24564` |
+
+This makes every result traceable to a specific commit and hardware state.
+
+### Per-image predictions CSV
+
+`save_predictions_csv()` writes a CSV alongside the JSON results:
+
+```
+image_path,score,label,prediction
+datasets/casting/ok/0001.png,0.12,0,0
+datasets/casting/nok/0042.png,0.87,1,1
+```
+
+This enables post-hoc analysis, error inspection, and threshold sweep
+without re-running inference.
+
+---
+
+## 7. Multi-seed aggregation
 
 Module: `shared/aggregate.py`
 
@@ -199,7 +239,28 @@ model & AUROC & F1 & Latency & GPU Memory \\
 
 ---
 
-## 7. Results storage
+## 8. Few-shot evaluation
+
+Configuration key: `few_shot_sizes` in `benchmark/config.yaml`.
+
+Default sizes: **[10, 25, 50, 100]**.
+
+When invoked with the `--few-shot` flag:
+
+```bash
+python benchmark/run.py --dataset casting --model patchcore --few-shot
+```
+
+The orchestrator runs the full `(model × seed × n_train)` grid for all
+configured few-shot sizes. This produces comparable curves showing how
+model performance scales with the number of training samples.
+
+The few-shot invariant (Section 1) guarantees that val and test sets are
+identical across all `n_train` values for a given `(dataset_id, seed)`.
+
+---
+
+## 9. Results storage
 
 Module: `shared/results_io.py`
 
@@ -218,7 +279,7 @@ Each file contains:
 
 ---
 
-## 8. Troubleshooting
+## 10. Troubleshooting
 
 ### "Not enough OK images"
 

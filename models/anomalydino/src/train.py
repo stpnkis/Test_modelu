@@ -11,7 +11,7 @@ How it works
    from every reference image.
 2. All patch features are concatenated into a single memory bank —
    shape ``[N_images × n_patches, feature_dim]``.
-3. At inference (evaluate.py) each test-image patch is compared to
+3. At inference (run_benchmark.py) each test-image patch is compared to
    the memory bank via cosine distance.  The maximum distance across
    all patches becomes the image-level anomaly score.
 
@@ -35,7 +35,7 @@ Usage (standalone)::
 
     python src/train.py --split-dir splits/n50 --output-dir experiments/n50
 
-Typically called automatically by ``experiment_runner.py``.
+Typically called automatically by ``run_benchmark.py``.
 """
 
 from __future__ import annotations
@@ -248,7 +248,7 @@ def train_anomalydino(
 ) -> str:
     """Build the memory bank and save as a ``.pth`` checkpoint.
 
-    This is the main entry point called by ``experiment_runner.py``
+    This is the main entry point called by ``run_benchmark.py``
     (or directly via CLI).
 
     Args:

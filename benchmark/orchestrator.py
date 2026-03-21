@@ -187,3 +187,46 @@ def orchestrate(
         results_map[model_name] = summary
 
     return results_map
+
+
+def orchestrate_few_shot(
+    dataset_id: str,
+    models: List[str],
+    seeds: List[int],
+    few_shot_sizes: List[int],
+    preprocessing_mode: str,
+    datasets_root: str,
+    splits_root: str,
+    experiments_root: str,
+    repo_root: Optional[str] = None,
+    threshold_strategy: str = "quantile",
+    threshold_quantile_p: float = 0.99,
+) -> Dict[str, Dict[int, Dict[str, Any]]]:
+    """Run the few-shot sample-efficiency study.
+
+    Runs the full benchmark for each n_train in *few_shot_sizes*.
+
+    Returns:
+        Nested dict: ``{model_name: {n_train: summary_dict}}``.
+    """
+    results: Dict[str, Dict[int, Dict[str, Any]]] = {}
+    for n_train in few_shot_sizes:
+        logger.info("=" * 70)
+        logger.info("  FEW-SHOT STUDY: n_train=%d", n_train)
+        logger.info("=" * 70)
+        summaries = orchestrate(
+            dataset_id=dataset_id,
+            models=models,
+            seeds=seeds,
+            n_train=n_train,
+            preprocessing_mode=preprocessing_mode,
+            datasets_root=datasets_root,
+            splits_root=splits_root,
+            experiments_root=experiments_root,
+            repo_root=repo_root,
+            threshold_strategy=threshold_strategy,
+            threshold_quantile_p=threshold_quantile_p,
+        )
+        for model_name, summary in summaries.items():
+            results.setdefault(model_name, {})[n_train] = summary
+    return results

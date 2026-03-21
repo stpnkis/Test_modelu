@@ -169,10 +169,10 @@ Module: `shared/runtime_profiler.py`
 
 | Metric | Unit | Description |
 |---|---|---|
-| `model_latency_mean` | ms | Mean model-only inference time |
-| `model_latency_std` | ms | Std dev of model-only inference time |
-| `e2e_latency_mean` | ms | Mean end-to-end (load + preprocess + infer) |
-| `e2e_latency_std` | ms | Std dev of end-to-end time |
+| `model_only_latency_ms` | ms | Mean model-only inference time |
+| `model_only_latency_std_ms` | ms | Std dev of model-only inference time |
+| `end_to_end_latency_ms` | ms | Mean end-to-end (load + preprocess + infer) |
+| `end_to_end_latency_std_ms` | ms | Std dev of end-to-end time |
 | `gpu_peak_memory_mb` | MB | Peak GPU memory during inference |
 
 `measure_latency()` returns `(mean, std)` — both values are stored

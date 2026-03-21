@@ -44,6 +44,12 @@ def compute_threshold(
     scores = np.asarray(val_scores, dtype=float)
     if scores.size == 0:
         raise ValueError("val_scores must not be empty.")
+    if not np.all(np.isfinite(scores)):
+        raise ValueError(
+            "val_scores contains NaN or Inf values. "
+            "This usually indicates a broken model (producing NaN scores) "
+            "or a preprocessing error."
+        )
 
     if strategy == "quantile":
         threshold = float(np.quantile(scores, quantile_p))

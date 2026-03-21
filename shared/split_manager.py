@@ -121,6 +121,9 @@ def create_split(
     dataset_dir = Path(dataset_dir).resolve()
     splits_root = Path(splits_root)
 
+    if n_train < 1:
+        raise ValueError(f"n_train must be >= 1, got {n_train}.")
+
     ok_images = _list_images(dataset_dir / "ok")
     nok_images = _list_images(dataset_dir / "nok")
 

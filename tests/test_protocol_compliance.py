@@ -627,3 +627,91 @@ class TestRunBenchmarkStructure:
         # roc_curve is OK in compute_image_metrics (for AUROC), but not for threshold
         # Check that roc_curve is not used for threshold computation
         assert "j_scores = tpr - fpr" not in source, f"{rel_path} computes Youden J"
+
+
+# ── 11. Hardening tests ─────────────────────────────────────────────────────
+
+
+class TestHardeningGuards:
+    """Guards added during hardening pass must trigger correctly."""
+
+    def test_aggregation_fails_on_missing_seed(self, tmp_path):
+        """aggregate_seeds must raise FileNotFoundError if any seed is missing."""
+        seeds = [42, 1337, 2026]
+        # Save results for only 2 of 3 seeds
+        for seed in seeds[:2]:
+            save_results(
+                str(tmp_path),
+                "ds",
+                "model",
+                seed,
+                {"auroc": 0.90, "f1": 0.80},
+                runtime={"model_only_latency_ms": 10.0},
+                preprocessing_mode="baseline",
+                n_train=100,
+            )
+
+        with pytest.raises(FileNotFoundError, match="Missing results for seed"):
+            aggregate_seeds(
+                str(tmp_path),
+                "ds",
+                "model",
+                seeds,
+                preprocessing_mode="baseline",
+                n_train=100,
+            )
+
+    def test_thresholding_rejects_nan(self):
+        """compute_threshold must reject NaN in val_scores."""
+        scores = [0.1, 0.2, float("nan"), 0.4]
+        with pytest.raises(ValueError, match="NaN or Inf"):
+            compute_threshold(scores, strategy="quantile")
+
+    def test_thresholding_rejects_inf(self):
+        """compute_threshold must reject Inf in val_scores."""
+        scores = [0.1, 0.2, float("inf"), 0.4]
+        with pytest.raises(ValueError, match="NaN or Inf"):
+            compute_threshold(scores, strategy="quantile")
+
+    def test_split_rejects_n_train_zero(self, fake_dataset):
+        """create_split must reject n_train=0."""
+        ds, splits_root = fake_dataset
+        with pytest.raises(ValueError, match="n_train must be >= 1"):
+            create_split(
+                str(ds),
+                str(splits_root),
+                "test_ds",
+                n_train=0,
+                seed=42,
+                link_mode="copy",
+            )
+
+    def test_metrics_require_both_classes(self):
+        """compute_image_metrics must reject single-class labels."""
+        labels = np.array([0, 0, 0, 0])
+        scores = np.array([0.1, 0.2, 0.3, 0.4])
+        with pytest.raises(ValueError, match="requires both normal.*and anomalous"):
+            compute_image_metrics(labels, scores, threshold=0.5)
+
+    def test_training_folder_ok_only(self, fake_dataset):
+        """Split train set must contain only ok images (label=0)."""
+        ds, splits_root = fake_dataset
+        m = create_split(
+            str(ds),
+            str(splits_root),
+            "test_ds",
+            n_train=10,
+            seed=42,
+            link_mode="copy",
+        )
+        for f in m["files"]["train_ok"]:
+            # All training images must come from the ok/ pool
+            assert "nok" not in Path(f).stem
+
+    @pytest.mark.parametrize("rel_path", TestRunBenchmarkStructure.BENCHMARK_FILES)
+    def test_preprocessing_uses_build_transforms(self, rel_path):
+        """All run_benchmark.py files must use shared build_transforms."""
+        source = (REPO_ROOT / rel_path).read_text()
+        assert (
+            "build_transforms" in source
+        ), f"{rel_path} does not use build_transforms from shared.preprocessing"

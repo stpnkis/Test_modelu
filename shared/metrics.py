@@ -22,7 +22,6 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
     roc_auc_score,
-    roc_curve,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +48,15 @@ def compute_image_metrics(
     """
     labels = np.asarray(labels, dtype=int)
     scores = np.asarray(scores, dtype=float)
+
+    # Guard: AUROC requires both classes to be present in the test set.
+    unique_labels = set(labels.tolist())
+    if unique_labels != {0, 1}:
+        raise ValueError(
+            f"compute_image_metrics requires both normal (0) and anomalous (1) "
+            f"labels in the test set, got unique labels: {unique_labels}. "
+            f"Check that both test/ok and test/nok are non-empty."
+        )
 
     auroc = float(roc_auc_score(labels, scores))
     preds = (scores >= threshold).astype(int)

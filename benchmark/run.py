@@ -137,6 +137,21 @@ def main() -> None:
     preprocessing_mode = args.preprocessing_mode or cfg.get(
         "preprocessing_mode", "baseline"
     )
+    # ── Validate config early ───────────────────────────────────────────────
+    VALID_PREPROCESSING_MODES = {"baseline", "high_accuracy", "edge_safe"}
+    VALID_THRESHOLD_STRATEGIES = {"quantile", "max", "k_sigma"}
+    if preprocessing_mode not in VALID_PREPROCESSING_MODES:
+        parser.error(
+            f"Invalid --preprocessing-mode '{preprocessing_mode}'. "
+            f"Must be one of: {sorted(VALID_PREPROCESSING_MODES)}"
+        )
+    threshold_strategy_raw = cfg.get("threshold_strategy", "quantile")
+    if threshold_strategy_raw not in VALID_THRESHOLD_STRATEGIES:
+        parser.error(
+            f"Invalid threshold_strategy '{threshold_strategy_raw}' in config. "
+            f"Must be one of: {sorted(VALID_THRESHOLD_STRATEGIES)}"
+        )
+
     datasets_root = paths.get("datasets_root", "datasets")
     splits_root = paths.get("splits_root", "splits")
     experiments_root = paths.get("experiments_root", "experiments")

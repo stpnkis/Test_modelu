@@ -63,8 +63,11 @@ def aggregate_seeds(
                 experiments_root / dataset_id / model_name / str(seed) / "results.json"
             )
         if not results_path.exists():
-            logger.warning("Missing results for seed %d: %s", seed, results_path)
-            continue
+            raise FileNotFoundError(
+                f"Missing results for seed {seed}: {results_path}. "
+                f"All {len(seeds)} seeds must complete before aggregation. "
+                f"Re-run the failed seed or check for errors."
+            )
 
         with open(results_path) as f:
             data = json.load(f)

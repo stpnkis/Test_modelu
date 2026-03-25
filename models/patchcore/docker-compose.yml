@@ -8,9 +8,11 @@
 services:
   patchcore:
     build: .
+    user: "${UID:-1000}:${GID:-1000}"
     shm_size: '8gb'
     environment:
       - PYTHONPATH=/app
+      - HOME=/tmp
     volumes:
       # Datasets (read-only)
       - ../../datasets:/app/datasets:ro

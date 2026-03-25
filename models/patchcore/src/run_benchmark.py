@@ -4,12 +4,17 @@ PatchCore — Benchmark adapter.
 
 Unified entry point invoked by the orchestrator inside the Docker container.
 
-CRITICAL: This adapter avoids anomalib's implicit preprocessing pipeline.
-Instead, it uses the shared transform builder and manually feeds images
-through training / inference to prevent double-normalization and double-resize.
-
-For training, we still use anomalib's PatchCore model (memory bank build)
-but ensure data is loaded through the shared preprocessing pipeline.
+CRITICAL DESIGN DECISIONS:
+1. Anomalib's Folder datamodule is used ONLY for engine.fit() (memory bank
+   building).  Even there, val_split_mode is forced to "same_as_test" and
+   test_split_mode to "from_dir" so that anomalib's internal
+   _create_val_split / _create_test_split never randomly resplit our data.
+2. For val/ok threshold scoring and test set evaluation we bypass the
+   anomalib datamodule entirely.  Explicit BenchmarkImageDataset +
+   DataLoader instances guarantee that exactly the files defined by the
+   split manager are scored — no hidden halving, no anomaly contamination
+   of the threshold, no library side effects.
+3. Shared transforms are used everywhere to prevent double preprocessing.
 """
 from __future__ import annotations
 
@@ -24,7 +29,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import ConcatDataset, DataLoader, Dataset
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
@@ -43,7 +48,7 @@ from shared.results_io import save_results, save_predictions_csv
 from shared.split_manager import get_split_dir, load_split_manifest
 from shared.dataset_schema import IMAGE_EXTENSIONS
 
-# We still import anomalib for PatchCore model + Engine, but control data ourselves
+# Anomalib is used ONLY for PatchCore model definition + Engine.fit()
 from anomalib.data import Folder
 from anomalib.models import Patchcore
 from anomalib.engine import Engine
@@ -78,28 +83,50 @@ class BenchmarkImageDataset(Dataset):
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
-def _extract_field(obj, *names):
-    """Try to extract a named field from an object or dict."""
-    for name in names:
-        if hasattr(obj, name):
-            val = getattr(obj, name)
-            if val is not None:
-                return val
-        if isinstance(obj, dict) and name in obj:
-            val = obj[name]
-            if val is not None:
-                return val
-    return None
-
-
 def _to_numpy(tensor_or_array) -> np.ndarray:
     if hasattr(tensor_or_array, "cpu"):
         return tensor_or_array.cpu().numpy().flatten()
     return np.asarray(tensor_or_array).flatten()
 
 
-def _label_from_path(path: str) -> int:
-    return 0 if "good" in str(path).lower() or "/ok" in str(path).lower() else 1
+def _score_dataset(
+    model: torch.nn.Module,
+    dataset: Dataset,
+    device: torch.device,
+    batch_size: int = 32,
+) -> tuple[list[float], list[int], list[str]]:
+    """Run model inference on *dataset* and collect scores, labels, paths.
+
+    This function is the ONLY scoring path used for val and test.
+    It bypasses anomalib's datamodule / engine.predict entirely,
+    guaranteeing that exactly the provided dataset is scored.
+    """
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=0,        # safest in Docker; avoids worker spawn issues
+        pin_memory=False,
+    )
+    all_scores: list[float] = []
+    all_labels: list[int] = []
+    all_paths: list[str] = []
+
+    model.eval()
+    with torch.no_grad():
+        for tensors, labels, paths in loader:
+            tensors = tensors.to(device)
+            output = model(tensors)
+            # PatchCore returns dict {"anomaly_map": ..., "pred_score": ...}
+            if isinstance(output, dict):
+                scores = output["pred_score"]
+            else:
+                scores = output
+            all_scores.extend(_to_numpy(scores).tolist())
+            all_labels.extend(labels.numpy().astype(int).tolist())
+            all_paths.extend(paths)
+
+    return all_scores, all_labels, all_paths
 
 
 def main() -> None:
@@ -122,7 +149,6 @@ def main() -> None:
     )
 
     set_seed(args.seed)
-    device_str = "auto"
     image_size = get_image_size(args.preprocessing_mode)
 
     # ── Validate threshold config ────────────────────────────────────
@@ -150,15 +176,64 @@ def main() -> None:
     test_ok_dir = split_dir / "test" / "ok"
     test_nok_dir = split_dir / "test" / "nok"
 
-    # ── Train PatchCore via anomalib ─────────────────────────────────
-    # We use anomalib's Folder datamodule for training because PatchCore's
-    # memory bank building is tightly coupled to anomalib's Engine.
-    # We pass our shared transforms as train_transform / eval_transform
-    # to override anomalib's implicit preprocessing pipeline.
-    logger.info("Training PatchCore via anomalib ...")
+    # ── Verify split directories ─────────────────────────────────────
+    for name, d in [("train/ok", train_ok_dir), ("val/ok", val_ok_dir),
+                    ("test/ok", test_ok_dir), ("test/nok", test_nok_dir)]:
+        assert d.is_dir(), f"Split directory missing: {d}"
+
+    # ── Build shared transforms ──────────────────────────────────────
     transform = build_transforms(args.preprocessing_mode)
     validate_transform_pipeline(transform)
     log_transform_pipeline(transform, "patchcore")
+
+    # ── Count files per split (ground truth from filesystem) ─────────
+    n_train_ok_actual = len(BenchmarkImageDataset(train_ok_dir, transform, 0))
+    n_val_ok_actual = len(BenchmarkImageDataset(val_ok_dir, transform, 0))
+    n_test_ok_actual = len(BenchmarkImageDataset(test_ok_dir, transform, 0))
+    n_test_nok_actual = len(BenchmarkImageDataset(test_nok_dir, transform, 1))
+
+    logger.info(
+        "Split file counts (filesystem): train_ok=%d  val_ok=%d  "
+        "test_ok=%d  test_nok=%d  test_total=%d",
+        n_train_ok_actual,
+        n_val_ok_actual,
+        n_test_ok_actual,
+        n_test_nok_actual,
+        n_test_ok_actual + n_test_nok_actual,
+    )
+
+    # Cross-check with manifest
+    mc = manifest["counts"]
+    if n_train_ok_actual != mc["train_ok"]:
+        logger.warning(
+            "train_ok count mismatch: filesystem=%d  manifest=%d",
+            n_train_ok_actual, mc["train_ok"],
+        )
+    if n_val_ok_actual != mc["val_ok"]:
+        logger.warning(
+            "val_ok count mismatch: filesystem=%d  manifest=%d",
+            n_val_ok_actual, mc["val_ok"],
+        )
+    if n_test_ok_actual != mc["test_ok"]:
+        logger.warning(
+            "test_ok count mismatch: filesystem=%d  manifest=%d",
+            n_test_ok_actual, mc["test_ok"],
+        )
+    if n_test_nok_actual != mc["test_nok"]:
+        logger.warning(
+            "test_nok count mismatch: filesystem=%d  manifest=%d",
+            n_test_nok_actual, mc["test_nok"],
+        )
+
+    # ══════════════════════════════════════════════════════════════════
+    # PHASE 1: Train PatchCore via anomalib Engine.fit()
+    # ══════════════════════════════════════════════════════════════════
+    # Anomalib's Folder datamodule is used ONLY here.
+    # val_split_mode="same_as_test" prevents random resplitting.
+    # test_split_mode="from_dir" keeps normal_test_dir images in test.
+    # Neither val nor test data is used by PatchCore during fit
+    # (num_sanity_val_steps=0, max_epochs=1).
+    logger.info("Training PatchCore via anomalib ...")
 
     fit_start = time.perf_counter()
 
@@ -167,8 +242,6 @@ def main() -> None:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Try to pass explicit transforms to anomalib to prevent implicit ones.
-    # anomalib >= 1.2 supports train_transform / eval_transform params.
     try:
         datamodule = Folder(
             name=args.dataset_id,
@@ -182,17 +255,20 @@ def main() -> None:
             eval_transform=transform,
             train_batch_size=32,
             eval_batch_size=32,
+            # CRITICAL: disable internal val/test resplitting
+            val_split_mode="same_as_test",
+            val_split_ratio=0.5,  # irrelevant with same_as_test but explicit
+            test_split_mode="from_dir",
+            test_split_ratio=0.2,  # irrelevant with from_dir but explicit
         )
-        logger.info("Using explicit shared transforms for anomalib Folder datamodule.")
+        logger.info(
+            "Anomalib Folder: val_split_mode=same_as_test, "
+            "test_split_mode=from_dir (no random resplit)."
+        )
     except TypeError:
-        # Fallback for anomalib versions that don't support transform params.
-        # This is UNSAFE: anomalib will apply its own internal preprocessing
-        # on top of ours, causing double-normalize or double-resize.
         raise RuntimeError(
-            "Your anomalib version does not accept train_transform/eval_transform. "
-            "Upgrade to anomalib >= 1.2 or manually verify that anomalib's "
-            "internal transforms are disabled. Double preprocessing will produce "
-            "incorrect benchmark results."
+            "Your anomalib version does not accept val_split_mode/test_split_mode. "
+            "Upgrade to anomalib >= 1.2."
         )
 
     model = Patchcore(
@@ -213,62 +289,39 @@ def main() -> None:
     engine.fit(model=model, datamodule=datamodule)
     fit_time = time.perf_counter() - fit_start
 
-    # Find checkpoint
-    ckpt_path = None
-    cb = engine.trainer.checkpoint_callback
-    if cb is not None and cb.best_model_path:
-        ckpt_path = cb.best_model_path
-    if not ckpt_path:
-        candidates = sorted(output_dir.rglob("*.ckpt"))
-        if candidates:
-            ckpt_path = str(candidates[-1])
-    if not ckpt_path:
-        raise FileNotFoundError(f"No checkpoint found in {output_dir}")
+    # ══════════════════════════════════════════════════════════════════
+    # PHASE 2: Score val/ok for threshold (bypass anomalib datamodule)
+    # ══════════════════════════════════════════════════════════════════
+    logger.info("Scoring val/ok for threshold (direct inference, no anomalib DM) ...")
 
-    logger.info("Checkpoint: %s", ckpt_path)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Access the underlying torch model from the Lightning module
+    patchcore_torch = model.model.to(device)
+    patchcore_torch.eval()
 
-    # ── Rebuild model for scoring with shared transforms ─────────────
-    # For scoring val and test, we use anomalib's predict() with the same
-    # datamodule to avoid re-implementing PatchCore's scoring logic.
-    # The key guarantee is: image_size in anomalib == shared image_size.
-
-    # Score val/ok for threshold
-    logger.info("Scoring val/ok for threshold ...")
-    try:
-        val_datamodule = Folder(
-            name=f"{args.dataset_id}_val",
-            root=str(split_dir),
-            normal_dir="val/ok",
-            abnormal_dir="test/nok",  # required by anomalib, not used for scoring val
-            normal_test_dir="val/ok",  # we score val/ok as "test" set
-            task="classification",
-            image_size=(image_size, image_size),
-            eval_transform=transform,
-            eval_batch_size=32,
-        )
-    except TypeError:
-        val_datamodule = Folder(
-            name=f"{args.dataset_id}_val",
-            root=str(split_dir),
-            normal_dir="val/ok",
-            abnormal_dir="test/nok",
-            normal_test_dir="val/ok",
-            task="classification",
-            image_size=(image_size, image_size),
-            eval_batch_size=32,
-        )
-
-    val_predictions = engine.predict(
-        model=model,
-        datamodule=val_datamodule,
-        ckpt_path=ckpt_path,
+    val_dataset = BenchmarkImageDataset(val_ok_dir, transform, label=0)
+    logger.info(
+        "Val dataset: %d images from %s  (first: %s)",
+        len(val_dataset),
+        val_ok_dir,
+        val_dataset.items[0].name if len(val_dataset) > 0 else "N/A",
     )
 
-    val_scores = []
-    for batch in val_predictions:
-        scores = _extract_field(batch, "pred_score", "pred_scores")
-        if scores is not None:
-            val_scores.extend(_to_numpy(scores).tolist())
+    val_scores, val_labels, val_paths = _score_dataset(
+        patchcore_torch, val_dataset, device, batch_size=32,
+    )
+
+    # Sanity: all val labels must be 0 (normal)
+    assert all(
+        lbl == 0 for lbl in val_labels
+    ), "BUG: val/ok dataset contains non-normal labels — threshold would be contaminated."
+    logger.info(
+        "Val scores: n=%d  min=%.6f  max=%.6f  mean=%.6f",
+        len(val_scores),
+        min(val_scores),
+        max(val_scores),
+        sum(val_scores) / len(val_scores),
+    )
 
     threshold = compute_threshold(
         val_scores,
@@ -276,60 +329,63 @@ def main() -> None:
         quantile_p=args.threshold_quantile_p,
     )
 
-    # Score test set
-    logger.info("Scoring test set ...")
-    test_predictions = engine.predict(
-        model=model,
-        datamodule=datamodule,
-        ckpt_path=ckpt_path,
+    # ══════════════════════════════════════════════════════════════════
+    # PHASE 3: Score test set (bypass anomalib datamodule)
+    # ══════════════════════════════════════════════════════════════════
+    logger.info("Scoring test set (direct inference, no anomalib DM) ...")
+
+    test_ok_dataset = BenchmarkImageDataset(test_ok_dir, transform, label=0)
+    test_nok_dataset = BenchmarkImageDataset(test_nok_dir, transform, label=1)
+    test_dataset = ConcatDataset([test_ok_dataset, test_nok_dataset])
+
+    logger.info(
+        "Test dataset: %d OK + %d NOK = %d total  (first OK: %s, first NOK: %s)",
+        len(test_ok_dataset),
+        len(test_nok_dataset),
+        len(test_dataset),
+        test_ok_dataset.items[0].name if len(test_ok_dataset) > 0 else "N/A",
+        test_nok_dataset.items[0].name if len(test_nok_dataset) > 0 else "N/A",
     )
 
-    all_scores = []
-    all_labels = []
-    for batch in test_predictions:
-        scores = _extract_field(batch, "pred_score", "pred_scores")
-        labels = _extract_field(batch, "gt_label", "label", "gt_labels")
-        paths = _extract_field(batch, "image_path", "image_paths")
+    all_scores, all_labels, all_paths = _score_dataset(
+        patchcore_torch, test_dataset, device, batch_size=32,
+    )
 
-        if scores is not None:
-            all_scores.extend(_to_numpy(scores).tolist())
-        if labels is not None:
-            all_labels.extend(_to_numpy(labels).astype(int).tolist())
-        elif paths is not None:
-            all_labels.extend(_label_from_path(p) for p in paths)
+    logger.info(
+        "Test scores: n=%d  n_ok=%d  n_nok=%d",
+        len(all_scores),
+        sum(1 for l in all_labels if l == 0),
+        sum(1 for l in all_labels if l == 1),
+    )
 
     # ── Metrics ──────────────────────────────────────────────────────
     metrics = compute_image_metrics(all_labels, all_scores, threshold)
 
-    # AU-PRO: PatchCore (via anomalib classification mode) doesn't produce anomaly maps
+    # AU-PRO: PatchCore (via our direct inference) doesn't use anomaly maps
     aupro_result = compute_aupro(None, None)
     metrics.update(aupro_result)
+
+    # Add protocol metadata
+    metrics["n_val_ok_for_threshold"] = len(val_scores)
+    metrics["anomalib_internal_split_disabled"] = True
+
     logger.info("Metrics: %s", metrics)
 
     # ── Runtime profiling ────────────────────────────────────────────
-    # For PatchCore, we measure latency using anomalib's predict.
-    # This is the most honest measurement since the full pipeline goes
-    # through anomalib.
-    transform = build_transforms(args.preprocessing_mode)
     sample_path = sorted(test_ok_dir.iterdir())[0]
     sample_img = Image.open(sample_path).convert("RGB")
     sample_tensor = transform(sample_img).unsqueeze(0)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Model-only: forward pass through model
-    model_instance = model.to(device)
-    model_instance.eval()
-
+    # Model-only: forward pass through torch model
     def model_only_fn():
         with torch.no_grad():
-            model_instance(sample_tensor.to(device))
+            patchcore_torch(sample_tensor.to(device))
 
     def end_to_end_fn():
         img = Image.open(sample_path).convert("RGB")
         t = transform(img).unsqueeze(0).to(device)
         with torch.no_grad():
-            model_instance(t)
+            patchcore_torch(t)
 
     runtime = profile_model(
         model_only_fn=model_only_fn,
@@ -361,6 +417,9 @@ def main() -> None:
             "image_size": image_size,
             "threshold_strategy": args.threshold_strategy,
             "threshold_quantile_p": args.threshold_quantile_p,
+            "anomalib_val_split_mode": "same_as_test",
+            "anomalib_internal_split_disabled": True,
+            "scoring_method": "direct_model_inference",
         },
         preprocessing_mode=args.preprocessing_mode,
         n_train=args.n_train,
@@ -368,15 +427,6 @@ def main() -> None:
 
     # Save per-image predictions CSV for auditability
     preds = [int(s >= threshold) for s in all_scores]
-    # Collect image paths from test predictions
-    all_paths = []
-    for batch in test_predictions:
-        paths = _extract_field(batch, "image_path", "image_paths")
-        if paths is not None:
-            if isinstance(paths, (list, tuple)):
-                all_paths.extend(str(p) for p in paths)
-            else:
-                all_paths.append(str(paths))
     if len(all_paths) == len(all_scores):
         save_predictions_csv(
             experiments_root=args.experiments_root,
@@ -391,7 +441,16 @@ def main() -> None:
             n_train=args.n_train,
         )
 
-    logger.info("Done. AUROC=%.4f  F1=%.4f", metrics["auroc"], metrics["f1"])
+    logger.info(
+        "Done. AUROC=%.4f  F1=%.4f  threshold=%.6f  "
+        "n_val_ok=%d  n_test_ok=%d  n_test_nok=%d",
+        metrics["auroc"],
+        metrics["f1"],
+        threshold,
+        len(val_scores),
+        metrics["n_test_ok"],
+        metrics["n_test_nok"],
+    )
 
 
 if __name__ == "__main__":

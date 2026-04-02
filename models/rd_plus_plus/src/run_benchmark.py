@@ -122,7 +122,7 @@ def main() -> None:
     parser.add_argument("--splits-root", default="splits")
     parser.add_argument("--experiments-root", default="experiments")
     parser.add_argument("--threshold-strategy", default="quantile")
-    parser.add_argument("--threshold-quantile-p", type=float, default=0.99)
+    parser.add_argument("--threshold-quantile-p", type=float, default=0.98)
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -166,6 +166,7 @@ def main() -> None:
 
     # ── Train ────────────────────────────────────────────────────────
     logger.info("Training RD++ ...")
+    set_seed(args.seed)  # Re-seed before training for full determinism
     geo_transform = build_geometric_transforms(args.preprocessing_mode)
     fit_start = time.perf_counter()
     checkpoint_path = train_rd_plus_plus(
@@ -174,7 +175,9 @@ def main() -> None:
             Path(args.experiments_root)
             / args.dataset_id
             / "rd_plus_plus"
-            / str(args.seed)
+            / f"mode={args.preprocessing_mode}"
+            / f"n_train={args.n_train}"
+            / f"seed={args.seed}"
         ),
         image_size=image_size,
         epochs=args.epochs,
@@ -203,8 +206,16 @@ def main() -> None:
     logger.info("Scoring val/ok for threshold ...")
     val_ds = BenchmarkImageDataset(val_ok_dir, transform, label=0)
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=0)
-    val_scores, _, _ = _score_images(
+    val_scores, val_labels, _ = _score_images(
         encoder, bn, decoder, proj_layer, val_loader, device, image_size
+    )
+    assert all(
+        lbl == 0 for lbl in val_labels
+    ), "BUG: val/ok dataset contains non-normal labels — threshold would be contaminated."
+    logger.info(
+        "Val scores: n=%d  min=%.6f  max=%.6f  mean=%.6f",
+        len(val_scores), min(val_scores), max(val_scores),
+        sum(val_scores) / len(val_scores),
     )
 
     threshold = compute_threshold(
@@ -238,6 +249,7 @@ def main() -> None:
 
     # ── Metrics ──────────────────────────────────────────────────────
     metrics = compute_image_metrics(test_labels, test_scores, threshold)
+    metrics["n_val_ok_for_threshold"] = len(val_scores)
 
     # AU-PRO: RD++ produces anomaly maps — check if masks are available
     has_masks = manifest.get("has_masks", False)
@@ -269,20 +281,22 @@ def main() -> None:
     sample_tensor = transform(sample_img).unsqueeze(0).to(device)
 
     def model_only_fn():
-        inputs = encoder(sample_tensor)
-        features = proj_layer(inputs)
-        outputs = decoder(bn(features))
-        _ = compute_anomaly_map(inputs, outputs, image_size)
+        with torch.no_grad():
+            inputs = encoder(sample_tensor)
+            features = proj_layer(inputs)
+            outputs = decoder(bn(features))
+            _ = compute_anomaly_map(inputs, outputs, image_size)
 
     def end_to_end_fn():
-        img = Image.open(sorted(test_ok_dir.iterdir())[0]).convert("RGB")
-        t = transform(img).unsqueeze(0).to(device)
-        inputs = encoder(t)
-        features = proj_layer(inputs)
-        outputs = decoder(bn(features))
-        am = compute_anomaly_map(inputs, outputs, image_size)
-        am_np = am.cpu().numpy()
-        _ = scipy_gaussian_filter(am_np[0], sigma=4).max()
+        with torch.no_grad():
+            img = Image.open(sorted(test_ok_dir.iterdir())[0]).convert("RGB")
+            t = transform(img).unsqueeze(0).to(device)
+            inputs = encoder(t)
+            features = proj_layer(inputs)
+            outputs = decoder(bn(features))
+            am = compute_anomaly_map(inputs, outputs, image_size)
+            am_np = am.cpu().numpy()
+            _ = scipy_gaussian_filter(am_np[0], sigma=4).max()
 
     runtime = profile_model(
         model_only_fn=model_only_fn,
@@ -292,6 +306,9 @@ def main() -> None:
         image_size=image_size,
         fit_time_s=fit_time,
         config_snapshot={
+            "backbone": "wide_resnet50_2",
+            "layers": ["layer1", "layer2", "layer3"],
+            "epochs": args.epochs,
             "n_train": args.n_train,
             "seed": args.seed,
             "dataset_id": args.dataset_id,
@@ -307,12 +324,21 @@ def main() -> None:
         metrics=metrics,
         runtime=runtime.to_dict(),
         config={
+            "backbone": "wide_resnet50_2",
+            "layers": ["layer1", "layer2", "layer3"],
+            "decoder_layers": [3, 4, 6],
+            "width_per_group": 128,
+            "proj_base": 64,
+            "proj_lr": 1e-3,
+            "distill_lr": 5e-3,
+            "weight_proj": 0.2,
             "n_train": args.n_train,
             "preprocessing_mode": args.preprocessing_mode,
             "image_size": image_size,
             "threshold_strategy": args.threshold_strategy,
             "threshold_quantile_p": args.threshold_quantile_p,
             "epochs": args.epochs,
+            "scoring_method": "direct_model_inference",
         },
         preprocessing_mode=args.preprocessing_mode,
         n_train=args.n_train,

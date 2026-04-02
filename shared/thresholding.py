@@ -5,7 +5,7 @@ The threshold is **never** derived from test data or test labels.
 No ``roc_curve``, no Youden J on test data.
 
 Supported strategies:
-    ``quantile`` — p-quantile of val/ok scores (default p=0.99)
+    ``quantile`` — p-quantile of val/ok scores (default p=0.98)
     ``max``      — maximum of val/ok scores
     ``k_sigma``  — mean + k × std of val/ok scores (default k=3)
 """
@@ -24,7 +24,7 @@ def compute_threshold(
     val_scores: List[float] | np.ndarray,
     strategy: str = "quantile",
     *,
-    quantile_p: float = 0.99,
+    quantile_p: float = 0.98,
     k_sigma: float = 3.0,
 ) -> float:
     """Compute anomaly threshold from **validation-only** normal scores.

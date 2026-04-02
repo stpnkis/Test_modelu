@@ -21,6 +21,33 @@ from shared.split_manager import create_split, load_split_manifest
 from shared.preprocessing import build_transforms, get_image_size
 from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics
+from shared.dataset_registry import DatasetConfig, get_dataset_config
+
+
+# Mock config for the synthetic dataset: custom_holdout with 300 ok, 10 nok
+_SYNTH_CONFIG = DatasetConfig(
+    dataset_id="synth",
+    split_policy="custom_holdout",
+    official_train_ok=0,
+    official_test_ok=0,
+    total_nok=10,
+    val_ok_count=30,
+    main_train_ok=220,  # 300 - 50 (test) - 30 (val)
+    custom_test_ok_count=50,
+    few_shot_levels=[5, 10, 25],
+    has_masks=False,
+)
+
+
+def _patch_registry(monkeypatch):
+    _original = get_dataset_config
+
+    def _patched(dataset_id):
+        if dataset_id == "synth":
+            return _SYNTH_CONFIG
+        return _original(dataset_id)
+
+    monkeypatch.setattr("shared.split_manager.get_dataset_config", _patched)
 
 
 def _make_synthetic_image(path: Path, size: int = 64, anomalous: bool = False):
@@ -34,8 +61,8 @@ def _make_synthetic_image(path: Path, size: int = 64, anomalous: bool = False):
 
 
 @pytest.fixture
-def mini_dataset(tmp_path):
-    """Build a 300-ok + 10-nok synthetic dataset (enough for TEST_OK_COUNT=200)."""
+def mini_dataset(tmp_path, monkeypatch):
+    """Build a 300-ok + 10-nok synthetic dataset."""
     ds_dir = tmp_path / "datasets" / "synth"
     ok_dir = ds_dir / "ok"
     nok_dir = ds_dir / "nok"
@@ -46,6 +73,8 @@ def mini_dataset(tmp_path):
         _make_synthetic_image(ok_dir / f"ok_{i:04d}.png")
     for i in range(10):
         _make_synthetic_image(nok_dir / f"nok_{i:04d}.png", anomalous=True)
+
+    _patch_registry(monkeypatch)
 
     return {
         "dataset_dir": ds_dir,

@@ -27,6 +27,7 @@ from shared.preprocessing import (
 from shared.split_manager import create_split, validate_split_invariance
 from shared.metrics import compute_aupro
 from shared.runtime_profiler import profile_model
+from shared.dataset_registry import DatasetConfig, get_dataset_config
 
 import torchvision.transforms as T
 import torch
@@ -37,9 +38,33 @@ import torch
 NUM_OK = 300
 NUM_NOK = 20
 
+_TEST_DS_CONFIG = DatasetConfig(
+    dataset_id="test_ds",
+    split_policy="custom_holdout",
+    official_train_ok=0,
+    official_test_ok=0,
+    total_nok=NUM_NOK,
+    val_ok_count=30,
+    main_train_ok=NUM_OK - 30 - 50,  # 220
+    custom_test_ok_count=50,
+    few_shot_levels=[5, 10, 20],
+    has_masks=False,
+)
+
+
+def _patch_registry(monkeypatch):
+    _original = get_dataset_config
+
+    def _patched(dataset_id):
+        if dataset_id == "test_ds":
+            return _TEST_DS_CONFIG
+        return _original(dataset_id)
+
+    monkeypatch.setattr("shared.split_manager.get_dataset_config", _patched)
+
 
 @pytest.fixture
-def fake_dataset(tmp_path):
+def fake_dataset(tmp_path, monkeypatch):
     """Create a fake dataset with enough OK images for the split manager."""
     ds = tmp_path / "datasets" / "test_ds"
     ok_dir = ds / "ok"
@@ -51,6 +76,8 @@ def fake_dataset(tmp_path):
         (ok_dir / f"ok_{i:04d}.png").write_bytes(b"fake_image_data")
     for i in range(NUM_NOK):
         (nok_dir / f"nok_{i:04d}.png").write_bytes(b"fake_image_data")
+
+    _patch_registry(monkeypatch)
 
     return ds, tmp_path / "splits"
 

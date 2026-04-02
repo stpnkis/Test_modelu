@@ -135,11 +135,14 @@ def main() -> None:
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--n-train", type=int, required=True)
     parser.add_argument("--preprocessing-mode", default="baseline")
-    parser.add_argument("--backbone", default="wide_resnet50_2")
+    parser.add_argument("--backbone", default="resnet50")
+    parser.add_argument("--layers", nargs="+", default=["layer2", "layer3"])
+    parser.add_argument("--coreset-sampling-ratio", type=float, default=0.1)
+    parser.add_argument("--num-neighbors", type=int, default=15)
     parser.add_argument("--splits-root", default="splits")
     parser.add_argument("--experiments-root", default="experiments")
     parser.add_argument("--threshold-strategy", default="quantile")
-    parser.add_argument("--threshold-quantile-p", type=float, default=0.99)
+    parser.add_argument("--threshold-quantile-p", type=float, default=0.98)
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -235,6 +238,8 @@ def main() -> None:
     # (num_sanity_val_steps=0, max_epochs=1).
     logger.info("Training PatchCore via anomalib ...")
 
+    # Re-seed before anomalib to ensure deterministic data loading
+    set_seed(args.seed)
     fit_start = time.perf_counter()
 
     output_dir = (
@@ -273,9 +278,13 @@ def main() -> None:
 
     model = Patchcore(
         backbone=args.backbone,
-        layers=["layer2", "layer3"],
-        coreset_sampling_ratio=0.1,
-        num_neighbors=9,
+        layers=args.layers,
+        coreset_sampling_ratio=args.coreset_sampling_ratio,
+        num_neighbors=args.num_neighbors,
+    )
+    logger.info(
+        "PatchCore config: backbone=%s layers=%s coreset=%.3f neighbors=%d",
+        args.backbone, args.layers, args.coreset_sampling_ratio, args.num_neighbors,
     )
 
     engine = Engine(
@@ -284,6 +293,7 @@ def main() -> None:
         max_epochs=1,
         devices=1,
         accelerator="auto",
+        num_sanity_val_steps=0,
     )
 
     engine.fit(model=model, datamodule=datamodule)
@@ -396,6 +406,9 @@ def main() -> None:
         fit_time_s=fit_time,
         config_snapshot={
             "backbone": args.backbone,
+            "layers": args.layers,
+            "coreset_sampling_ratio": args.coreset_sampling_ratio,
+            "num_neighbors": args.num_neighbors,
             "n_train": args.n_train,
             "seed": args.seed,
             "dataset_id": args.dataset_id,
@@ -412,6 +425,9 @@ def main() -> None:
         runtime=runtime.to_dict(),
         config={
             "backbone": args.backbone,
+            "layers": args.layers,
+            "coreset_sampling_ratio": args.coreset_sampling_ratio,
+            "num_neighbors": args.num_neighbors,
             "n_train": args.n_train,
             "preprocessing_mode": args.preprocessing_mode,
             "image_size": image_size,

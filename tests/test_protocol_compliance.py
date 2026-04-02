@@ -45,6 +45,7 @@ from shared.thresholding import compute_threshold
 from shared.metrics import compute_image_metrics
 from shared.aggregate import aggregate_seeds, format_latex_row, save_summary
 from shared.seed_utils import set_seed
+from shared.dataset_registry import DatasetConfig, get_dataset_config
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -54,9 +55,35 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 NUM_OK = 300
 NUM_NOK = 20
 
+# Mock registry config for test_ds (custom_holdout policy, matching NUM_OK / NUM_NOK)
+_TEST_DS_CONFIG = DatasetConfig(
+    dataset_id="test_ds",
+    split_policy="custom_holdout",
+    official_train_ok=0,
+    official_test_ok=0,
+    total_nok=NUM_NOK,
+    val_ok_count=30,
+    main_train_ok=NUM_OK - 30 - 50,  # 220
+    custom_test_ok_count=50,
+    few_shot_levels=[10, 25, 50],
+    has_masks=False,
+)
+
+
+def _patch_registry(monkeypatch):
+    """Monkeypatch get_dataset_config so 'test_ds' resolves."""
+    _original = get_dataset_config
+
+    def _patched(dataset_id):
+        if dataset_id == "test_ds":
+            return _TEST_DS_CONFIG
+        return _original(dataset_id)
+
+    monkeypatch.setattr("shared.split_manager.get_dataset_config", _patched)
+
 
 @pytest.fixture
-def fake_dataset(tmp_path):
+def fake_dataset(tmp_path, monkeypatch):
     ds = tmp_path / "datasets" / "test_ds"
     ok_dir = ds / "ok"
     nok_dir = ds / "nok"
@@ -66,6 +93,7 @@ def fake_dataset(tmp_path):
         (ok_dir / f"ok_{i:04d}.png").write_bytes(b"fake")
     for i in range(NUM_NOK):
         (nok_dir / f"nok_{i:04d}.png").write_bytes(b"fake")
+    _patch_registry(monkeypatch)
     return ds, tmp_path / "splits"
 
 
@@ -392,15 +420,17 @@ class TestConfigCompliance:
             with open(config_path) as f:
                 return yaml.safe_load(f)
 
-    def test_config_has_few_shot_sizes(self):
-        cfg = self._load_config()
-        assert "few_shot_sizes" in cfg
-        sizes = cfg["few_shot_sizes"]
-        assert isinstance(sizes, list)
-        assert 10 in sizes
-        assert 25 in sizes
-        assert 50 in sizes
-        assert 100 in sizes
+    def test_registry_has_few_shot_levels(self):
+        """All registered datasets must define few-shot levels."""
+        from shared.dataset_registry import DATASET_CONFIGS
+
+        for ds_id, ds_cfg in DATASET_CONFIGS.items():
+            assert len(ds_cfg.few_shot_levels) >= 3, (
+                f"Dataset '{ds_id}' has fewer than 3 few-shot levels."
+            )
+            assert 10 in ds_cfg.few_shot_levels
+            assert 25 in ds_cfg.few_shot_levels
+            assert 50 in ds_cfg.few_shot_levels
 
     def test_config_has_three_seeds(self):
         cfg = self._load_config()
@@ -411,7 +441,12 @@ class TestConfigCompliance:
     def test_config_threshold_strategy_quantile(self):
         cfg = self._load_config()
         assert cfg["threshold_strategy"] == "quantile"
-        assert cfg["threshold_quantile_p"] == 0.99
+        assert cfg["threshold_quantile_p"] == 0.98
+
+    def test_config_has_benchmark_mode(self):
+        cfg = self._load_config()
+        assert "benchmark_mode" in cfg
+        assert cfg["benchmark_mode"] in ("main", "fewshot")
 
 
 # ── 8. Aggregation across seeds ─────────────────────────────────────────────
@@ -503,8 +538,8 @@ class TestSplitProtocol:
         # NOK names are inherently different from OK names
         assert train.isdisjoint(test_nok)
 
-    def test_all_seeds_produce_same_test(self, fake_dataset):
-        """All 3 official seeds must produce the same test set for same n_train."""
+    def test_all_seeds_produce_same_test_nok(self, fake_dataset):
+        """All seeds must include all NOK images in the test set."""
         ds, splits_root = fake_dataset
         seeds = [42, 1337, 2026]
         manifests = []
@@ -562,6 +597,7 @@ class TestSplitProtocol:
             "has_masks",
             "counts",
             "files",
+            "split_policy",
         ]
         for key in required_keys:
             assert key in m, f"Missing manifest key: {key}"

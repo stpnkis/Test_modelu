@@ -11,9 +11,14 @@
 services:
   anomalydino:
     build: .
+    user: "${UID:-1000}:${GID:-1000}"
     shm_size: "8gb"
+    gpus: all
     environment:
       - PYTHONPATH=/app
+      - HOME=/tmp
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     volumes:
       # Datasets (read-only)
       - ../../datasets:/app/datasets:ro
@@ -29,7 +34,7 @@ services:
       - ./src:/app/src
       # DINOv2 hub cache
       # Persist DINOv2 hub cache so weights aren't re-downloaded each run
-      - dino_hub_cache:/root/.cache/torch/hub
+      - dino_hub_cache:/tmp/.cache/torch/hub
     deploy:
       resources:
         reservations:

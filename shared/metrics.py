@@ -2,7 +2,7 @@
 Metrics — image-level and pixel-level evaluation.
 
 Image-level:
-    AUROC, Precision, Recall, F1
+    AUROC, Average Precision (AU-PR), Precision, Recall, F1
 
 Pixel-level:
     AU-PRO (integrated up to FPR = 0.3)
@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from sklearn.metrics import (
     auc,
+    average_precision_score,
     f1_score,
     precision_score,
     recall_score,
@@ -59,10 +60,12 @@ def compute_image_metrics(
         )
 
     auroc = float(roc_auc_score(labels, scores))
+    ap = float(average_precision_score(labels, scores))
     preds = (scores >= threshold).astype(int)
 
     return {
         "auroc": round(auroc, 4),
+        "average_precision": round(ap, 4),
         "precision": round(float(precision_score(labels, preds, zero_division=0)), 4),
         "recall": round(float(recall_score(labels, preds, zero_division=0)), 4),
         "f1": round(float(f1_score(labels, preds, zero_division=0)), 4),

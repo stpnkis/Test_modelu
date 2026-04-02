@@ -19,9 +19,63 @@ from typing import Any, Dict, List, Optional
 
 from shared.aggregate import aggregate_seeds, save_summary
 from shared.dataset_schema import validate_dataset
+from shared.results_io import get_results_dir
 from shared.split_manager import create_split, get_split_dir
 
 logger = logging.getLogger(__name__)
+
+
+# ── Pre/post-run audit helpers ───────────────────────────────────────────────
+
+
+def _audit_pre_run(
+    splits_root: str,
+    dataset_id: str,
+    seed: int,
+    n_train: int,
+) -> None:
+    """Verify that the split manifest exists before dispatching a model run."""
+    split_dir = get_split_dir(splits_root, dataset_id, seed, n_train)
+    manifest_path = split_dir / "manifest.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(
+            f"Pre-run audit FAILED: split manifest not found at {manifest_path}. "
+            f"Cannot run model without a valid split."
+        )
+    logger.debug("Pre-run audit OK: split manifest exists at %s", manifest_path)
+
+
+def _audit_post_run(
+    experiments_root: str,
+    dataset_id: str,
+    model_name: str,
+    seed: int,
+    preprocessing_mode: str,
+    n_train: int,
+) -> None:
+    """Verify that a model run produced the expected artifacts."""
+    results_dir = get_results_dir(
+        experiments_root, dataset_id, model_name, seed,
+        preprocessing_mode=preprocessing_mode, n_train=n_train,
+    )
+    results_json = results_dir / "results.json"
+    predictions_csv = results_dir / "predictions.csv"
+
+    missing = []
+    if not results_json.exists():
+        missing.append(str(results_json))
+    if not predictions_csv.exists():
+        missing.append(str(predictions_csv))
+
+    if missing:
+        raise FileNotFoundError(
+            f"Post-run audit FAILED for {model_name} seed={seed}: "
+            f"missing artifacts: {missing}"
+        )
+    logger.debug(
+        "Post-run audit OK: %s seed=%d -> results.json + predictions.csv present",
+        model_name, seed,
+    )
 
 
 def _resolve_model_dir(model_name: str, repo_root: Path) -> Path:
@@ -38,7 +92,7 @@ def run_model_in_docker(
     repo_root: Path,
     extra_args: Optional[List[str]] = None,
     threshold_strategy: str = "quantile",
-    threshold_quantile_p: float = 0.99,
+    threshold_quantile_p: float = 0.98,
 ) -> int:
     """Launch a model's train+evaluate pipeline inside its Docker container.
 
@@ -105,7 +159,7 @@ def orchestrate(
     experiments_root: str,
     repo_root: Optional[str] = None,
     threshold_strategy: str = "quantile",
-    threshold_quantile_p: float = 0.99,
+    threshold_quantile_p: float = 0.98,
 ) -> Dict[str, Any]:
     """Run the full benchmark for one dataset.
 
@@ -140,6 +194,13 @@ def orchestrate(
         )
 
     # 3. Run each model
+    logger.info(
+        "Run config: experiments_root=%s  seeds=%s  n_train=%d  "
+        "preprocessing=%s  threshold=%s(p=%.4f)",
+        experiments_root, seeds, n_train, preprocessing_mode,
+        threshold_strategy, threshold_quantile_p,
+    )
+
     results_map: Dict[str, Dict[str, Any]] = {}
     for model_name in models:
         logger.info("=" * 60)
@@ -151,6 +212,10 @@ def orchestrate(
         failed_rc = None
         for seed in seeds:
             logger.info("  Seed: %d", seed)
+
+            # Pre-run audit: split manifest must exist
+            _audit_pre_run(splits_root, dataset_id, seed, n_train)
+
             rc = run_model_in_docker(
                 model_name=model_name,
                 dataset_id=dataset_id,
@@ -174,6 +239,12 @@ def orchestrate(
                 failed_rc = rc
                 break
 
+            # Post-run audit: results.json + predictions.csv must exist
+            _audit_post_run(
+                experiments_root, dataset_id, model_name, seed,
+                preprocessing_mode, n_train,
+            )
+
         if seed_failed:
             results_map[model_name] = {
                 "error": (
@@ -188,7 +259,11 @@ def orchestrate(
             )
             continue
 
-        # 4. Aggregate
+        # 4. Aggregate (with consistency validation)
+        logger.info(
+            "Aggregating %s: seeds=%s  n_train=%d  mode=%s",
+            model_name, seeds, n_train, preprocessing_mode,
+        )
         summary = aggregate_seeds(
             experiments_root=experiments_root,
             dataset_id=dataset_id,
@@ -197,6 +272,15 @@ def orchestrate(
             preprocessing_mode=preprocessing_mode,
             n_train=n_train,
         )
+
+        # Post-aggregation audit: seed count must match
+        if summary["n_seeds_found"] != summary["n_seeds_expected"]:
+            raise RuntimeError(
+                f"Post-aggregation audit FAILED for {model_name}: "
+                f"expected {summary['n_seeds_expected']} seeds, "
+                f"found {summary['n_seeds_found']}"
+            )
+
         summary_path = (
             Path(experiments_root)
             / dataset_id
@@ -222,7 +306,7 @@ def orchestrate_few_shot(
     experiments_root: str,
     repo_root: Optional[str] = None,
     threshold_strategy: str = "quantile",
-    threshold_quantile_p: float = 0.99,
+    threshold_quantile_p: float = 0.98,
 ) -> Dict[str, Dict[int, Dict[str, Any]]]:
     """Run the few-shot sample-efficiency study.
 

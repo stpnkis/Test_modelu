@@ -125,6 +125,29 @@ class MaskResizeKeepAspectAndPad:
         return img
 
 
+def _ensure_pil_rgb(img):
+    """Convert input to PIL RGB, accepting PIL Image, Tensor, or ndarray."""
+    from PIL import Image
+    import numpy as np
+
+    if isinstance(img, Image.Image):
+        return img.convert("RGB")
+    if isinstance(img, torch.Tensor):
+        # CHW or HW tensor → PIL
+        if img.ndim == 3:
+            arr = img.permute(1, 2, 0).cpu().numpy()
+        else:
+            arr = img.cpu().numpy()
+        if arr.dtype != np.uint8:
+            arr = (arr * 255).clip(0, 255).astype(np.uint8)
+        return Image.fromarray(arr).convert("RGB")
+    if isinstance(img, np.ndarray):
+        if img.dtype != np.uint8:
+            img = (img * 255).clip(0, 255).astype(np.uint8)
+        return Image.fromarray(img).convert("RGB")
+    raise TypeError(f"Unexpected image type: {type(img)}")
+
+
 # ── Public API ───────────────────────────────────────────────────────────────
 
 
@@ -150,7 +173,7 @@ def build_transforms(mode: str = "baseline") -> T.Compose:
             f"Available: {sorted(PREPROCESSING_MODES)}"
         )
 
-    steps: list = [T.Lambda(lambda img: img.convert("RGB"))]
+    steps: list = [T.Lambda(_ensure_pil_rgb)]
 
     if mode == "baseline":
         steps.append(T.Resize(256, interpolation=T.InterpolationMode.BILINEAR))

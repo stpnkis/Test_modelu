@@ -128,7 +128,7 @@ def main() -> None:
     parser.add_argument("--splits-root", default="splits")
     parser.add_argument("--experiments-root", default="experiments")
     parser.add_argument("--threshold-strategy", default="quantile")
-    parser.add_argument("--threshold-quantile-p", type=float, default=0.99)
+    parser.add_argument("--threshold-quantile-p", type=float, default=0.98)
     args = parser.parse_args()
 
     logging.basicConfig(

@@ -60,8 +60,10 @@ def _score_single_image(
     ref_norm: torch.Tensor,
     transform,
     device: torch.device,
+    aggregation: str = "max",
+    topk_ratio: float = 0.01,
 ) -> float:
-    """Anomaly score for one image: max cosine distance to memory bank."""
+    """Anomaly score for one image: cosine distance to memory bank."""
     from PIL import Image
 
     img = Image.open(image_path).convert("RGB")
@@ -72,6 +74,11 @@ def _score_single_image(
     similarity = torch.mm(test_norm, ref_norm.t())
     max_sim, _ = similarity.max(dim=1)
     distances = 1.0 - max_sim
+
+    if aggregation == "topk_mean":
+        k = max(1, int(len(distances) * topk_ratio))
+        topk_vals = distances.topk(k).values
+        return float(topk_vals.mean().cpu())
     return float(distances.max().cpu())
 
 
@@ -82,12 +89,24 @@ def main() -> None:
     parser.add_argument("--n-train", type=int, required=True)
     parser.add_argument("--preprocessing-mode", default="baseline")
     parser.add_argument(
-        "--backbone", default="dinov2_vitb14", choices=sorted(BACKBONE_CONFIG)
+        "--backbone", default="dinov2_vits14", choices=sorted(BACKBONE_CONFIG)
+    )
+    parser.add_argument(
+        "--layers", default="8,9,10,11",
+        help="Comma-separated ViT block indices for multi-scale (e.g. 8,9,10,11)",
+    )
+    parser.add_argument(
+        "--aggregation", default="topk_mean", choices=["max", "topk_mean"],
+        help="Image-level score aggregation method",
+    )
+    parser.add_argument(
+        "--topk-ratio", type=float, default=0.01,
+        help="Fraction of patches for topk_mean aggregation",
     )
     parser.add_argument("--splits-root", default="splits")
     parser.add_argument("--experiments-root", default="experiments")
     parser.add_argument("--threshold-strategy", default="quantile")
-    parser.add_argument("--threshold-quantile-p", type=float, default=0.99)
+    parser.add_argument("--threshold-quantile-p", type=float, default=0.98)
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -99,6 +118,11 @@ def main() -> None:
     set_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     image_size = get_image_size(args.preprocessing_mode)
+
+    # Parse multi-scale layers
+    layers = None
+    if args.layers:
+        layers = [int(x) for x in args.layers.split(",")]
 
     # ── Validate threshold config ────────────────────────────────────
     logger.info(
@@ -136,7 +160,7 @@ def main() -> None:
     logger.info("Building AnomalyDINO memory bank ...")
     fit_start = time.perf_counter()
 
-    extractor = DINOv2FeatureExtractor(args.backbone).to(device)
+    extractor = DINOv2FeatureExtractor(args.backbone, layers=layers).to(device)
     train_images = _get_image_paths(train_ok_dir)
 
     all_features = []
@@ -164,7 +188,10 @@ def main() -> None:
     val_images = _get_image_paths(val_ok_dir)
     val_scores = []
     for img_path in val_images:
-        score = _score_single_image(img_path, extractor, ref_norm, transform, device)
+        score = _score_single_image(
+            img_path, extractor, ref_norm, transform, device,
+            aggregation=args.aggregation, topk_ratio=args.topk_ratio,
+        )
         val_scores.append(score)
 
     threshold = compute_threshold(
@@ -180,13 +207,19 @@ def main() -> None:
     test_paths: List[str] = []
 
     for img_path in _get_image_paths(test_ok_dir):
-        score = _score_single_image(img_path, extractor, ref_norm, transform, device)
+        score = _score_single_image(
+            img_path, extractor, ref_norm, transform, device,
+            aggregation=args.aggregation, topk_ratio=args.topk_ratio,
+        )
         test_scores.append(score)
         test_labels.append(0)
         test_paths.append(str(img_path))
 
     for img_path in _get_image_paths(test_nok_dir):
-        score = _score_single_image(img_path, extractor, ref_norm, transform, device)
+        score = _score_single_image(
+            img_path, extractor, ref_norm, transform, device,
+            aggregation=args.aggregation, topk_ratio=args.topk_ratio,
+        )
         test_scores.append(score)
         test_labels.append(1)
         test_paths.append(str(img_path))
@@ -217,10 +250,19 @@ def main() -> None:
         patches = feats.reshape(-1, feats.shape[-1])
         t_norm = F.normalize(patches, dim=1)
         sim = torch.mm(t_norm, ref_norm.t())
-        _ = sim.max(dim=1)
+        max_sim, _ = sim.max(dim=1)
+        distances = 1.0 - max_sim
+        if args.aggregation == "topk_mean":
+            k = max(1, int(len(distances) * args.topk_ratio))
+            _ = distances.topk(k).values.mean()
+        else:
+            _ = distances.max()
 
     def end_to_end_fn():
-        _score_single_image(test_image_path, extractor, ref_norm, transform, device)
+        _score_single_image(
+            test_image_path, extractor, ref_norm, transform, device,
+            aggregation=args.aggregation, topk_ratio=args.topk_ratio,
+        )
 
     runtime = profile_model(
         model_only_fn=model_only_fn,
@@ -247,6 +289,9 @@ def main() -> None:
         runtime=runtime.to_dict(),
         config={
             "backbone": args.backbone,
+            "layers": str(layers) if layers else "last",
+            "aggregation": args.aggregation,
+            "topk_ratio": args.topk_ratio,
             "n_train": args.n_train,
             "preprocessing_mode": args.preprocessing_mode,
             "image_size": image_size,

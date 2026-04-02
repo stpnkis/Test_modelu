@@ -79,8 +79,8 @@ BACKBONE_CONFIG: Dict[str, dict] = {
 }
 """Mapping of backbone name → torch.hub model id, feature dimension, patch size."""
 
-DEFAULT_BACKBONE: str = "dinov2_vitb14"
-"""Default backbone — ViT-B/14 gives the best accuracy in our experiments."""
+DEFAULT_BACKBONE: str = "dinov2_vits14"
+"""Default backbone — ViT-S/14 (frozen final config for benchmark)."""
 
 DEFAULT_IMAGE_SIZE: int = 448
 """Default input image size (448 / 14 = 32 patches per side = 1 024 per image)."""
@@ -101,7 +101,7 @@ class DINOv2FeatureExtractor(torch.nn.Module):
     (``~/.cache/torch/hub``).
     """
 
-    def __init__(self, backbone: str = DEFAULT_BACKBONE) -> None:
+    def __init__(self, backbone: str = DEFAULT_BACKBONE, layers: list | None = None) -> None:
         super().__init__()
         if backbone not in BACKBONE_CONFIG:
             raise ValueError(
@@ -111,8 +111,13 @@ class DINOv2FeatureExtractor(torch.nn.Module):
         self.cfg = BACKBONE_CONFIG[backbone]
         self.feat_dim: int = self.cfg["feat_dim"]
         self.patch_size: int = self.cfg["patch_size"]
+        self.layers = layers  # e.g. [8,9,10,11] for multi-scale extraction
+        self.output_dim: int = self.feat_dim * len(layers) if layers else self.feat_dim
 
-        logger.info("Loading DINOv2 backbone: %s  (dim=%d)", backbone, self.feat_dim)
+        logger.info(
+            "Loading DINOv2 backbone: %s  (dim=%d, layers=%s, output_dim=%d)",
+            backbone, self.feat_dim, layers or "last", self.output_dim,
+        )
         self.model = torch.hub.load(
             "facebookresearch/dinov2",
             self.cfg["hub_name"],
@@ -124,17 +129,26 @@ class DINOv2FeatureExtractor(torch.nn.Module):
 
     @torch.no_grad()
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Extract patch features.
+        """Extract patch features (optionally multi-scale).
 
         Args:
             x: ``[B, 3, H, W]`` — batch of images.
 
         Returns:
             ``[B, h, w, D]`` — spatial grid of patch features.
+            D equals ``feat_dim * len(layers)`` when multi-scale is active.
         """
         B, _C, H, W = x.shape
         h = H // self.patch_size
         w = W // self.patch_size
+
+        if self.layers:
+            outputs = self.model.get_intermediate_layers(
+                x, n=self.layers, norm=True,
+            )
+            concat = torch.cat(outputs, dim=-1)  # [B, N, D*len(layers)]
+            return concat.reshape(B, h, w, self.output_dim)
+
         tokens = self.model.forward_features(x)["x_norm_patchtokens"]  # [B, N, D]
         return tokens.reshape(B, h, w, self.feat_dim)
 
@@ -152,7 +166,15 @@ def _get_image_paths(directory: Path) -> List[Path]:
 
 
 def _make_transform(image_size: int) -> transforms.Compose:
-    """ImageNet-normalised resize transform compatible with DINOv2."""
+    """Build transform — delegates to shared pipeline when size matches."""
+    try:
+        from shared.preprocessing import build_transforms, PREPROCESSING_MODES
+        for mode, cfg in PREPROCESSING_MODES.items():
+            if cfg["image_size"] == image_size:
+                return build_transforms(mode)
+    except ImportError:
+        pass
+    # Fallback for standalone / non-standard sizes
     return transforms.Compose(
         [
             transforms.Resize((image_size, image_size)),
@@ -171,6 +193,7 @@ def build_memory_bank(
     extractor: DINOv2FeatureExtractor,
     device: torch.device,
     image_size: int = DEFAULT_IMAGE_SIZE,
+    transform=None,
 ) -> Tuple[torch.Tensor, int, int]:
     """Build the reference memory bank from OK images.
 
@@ -193,7 +216,8 @@ def build_memory_bank(
         FileNotFoundError: If no loadable images are found.
     """
     train_dir = Path(train_dir)
-    transform = _make_transform(image_size)
+    if transform is None:
+        transform = _make_transform(image_size)
     image_paths = _get_image_paths(train_dir)
     if not image_paths:
         raise FileNotFoundError(f"No images found in {train_dir}")

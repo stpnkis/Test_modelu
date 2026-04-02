@@ -3,14 +3,19 @@
 # This is the single configuration file for the benchmark.
 # CLI flags override values here.
 
-dataset_id: "casting"
+# ── Benchmark mode ───────────────────────────────────────────────────
+# "main"    — primary model-selection benchmark (max available train data)
+# "fewshot" — supplementary low-data robustness study (nested subsets)
+benchmark_mode: "main"
+
+dataset_id: "wood"
 
 seeds: [42, 1337, 2026]
 
-n_train_ok: 100
-
-# Few-shot sample-efficiency study sizes
-few_shot_sizes: [10, 25, 50, 100]
+# n_train_ok is now derived from the dataset registry for main mode.
+# For fewshot mode, the few_shot_levels from the registry are used.
+# This field is kept for backward compatibility / explicit override only.
+# n_train_ok: <use_registry_default>
 
 preprocessing_mode: "baseline" # baseline | high_accuracy | edge_safe
 image_size: 224 # derived from mode, but explicit for clarity
@@ -25,7 +30,7 @@ models:
 
 # Thresholding
 threshold_strategy: "quantile"
-threshold_quantile_p: 0.99
+threshold_quantile_p: 0.98
 
 # Runtime profiling
 warmup_iterations: 10

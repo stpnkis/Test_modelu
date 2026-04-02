@@ -787,7 +787,7 @@ def train_rd_plus_plus(
     if benchmark_mode:
         n_workers = 0
         dl_generator = torch.Generator()
-        dl_generator.manual_seed(42)  # seeded from set_seed() earlier
+        dl_generator.manual_seed(torch.initial_seed() % (2**32))  # use global seed
     else:
         n_workers = min(4, max(1, len(train_dataset)))
         dl_generator = None

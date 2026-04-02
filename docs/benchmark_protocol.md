@@ -17,16 +17,41 @@ datasets/<dataset_id>/
 └── masks/    ← optional pixel-level masks
 ```
 
-### Pool allocation
+### Dataset registry
 
-Given `seed` and `n_train`:
+Each dataset is registered in `shared/dataset_registry.py` with a
+`DatasetConfig` specifying its split policy, pool sizes, validation
+count, and few-shot levels. The registry is the single source of truth
+for all per-dataset methodology parameters.
 
-1. Shuffle all OK images with `random.Random(seed)`
-2. Allocate pools in order:
-   - **test/ok** — first `min(200, total_ok)` images
-   - **val/ok** — next `max(1, 15% of total_ok)` images
-   - **train/ok** — next `n_train` images from the remainder
-3. **test/nok** — all defective images (always)
+### Split policies
+
+#### `official_test` — MVTec AD, VisA
+
+For datasets with published train/test splits (bottle, wood, pcb1):
+
+1. Official `test/ok` images are identified from the sorted OK pool
+   (last `official_test_ok` images) — **deterministic, seed-independent**.
+2. Official `train/ok` pool = remaining OK images.
+3. Shuffle only the train pool with `random.Random(seed)`.
+4. `val/ok` = first `val_ok_count` from shuffled train pool.
+5. `train/ok` = next `n_train` images (nested subsets guaranteed).
+6. `test/nok` = all defective images (always, untouched).
+
+The official test set is **never reshuffled or recreated**. Only the
+train/val split from the training pool depends on the seed.
+
+#### `custom_holdout` — Kaggle Casting
+
+For datasets without official test splits (casting):
+
+1. Shuffle all OK images with `random.Random(seed)`.
+2. `test/ok` = first `custom_test_ok_count` images.
+3. `val/ok` = next `val_ok_count` images.
+4. `train/ok` = next `n_train` images (nested subsets guaranteed).
+5. `test/nok` = all defective images (always).
+
+The hold-out is seed-dependent but stable across all `n_train` values.
 
 ### Few-shot invariant
 
@@ -37,6 +62,14 @@ which images go into `train/ok`; val and test remain constant.
 This is critical: it means AUROC at `n_train=10` and `n_train=100`
 are evaluated on the exact same test set.
 
+### Few-shot subset nesting
+
+For a given `(dataset_id, seed)`, train subsets are nested:
+`k=10 ⊂ k=25 ⊂ k=50 ⊂ … ⊂ k=full`.
+
+This guarantees that performance differences between few-shot levels
+are attributable to additional training data, not data replacement.
+
 ### Manifest
 
 Each split produces a JSON manifest at:
@@ -45,8 +78,9 @@ Each split produces a JSON manifest at:
 splits/<dataset_id>/seed<N>/n<train>/manifest.json
 ```
 
-The manifest records file lists, counts, seed, and link mode.
-All models consume the same manifest — no model-local split logic.
+The manifest records file lists, counts, seed, link mode, and
+`split_policy`. All models consume the same manifest — no model-local
+split logic.
 
 ---
 
@@ -98,10 +132,10 @@ This prevents information leakage from test data into the decision boundary.
 ### Default strategy: quantile
 
 ```python
-threshold = np.quantile(val_ok_scores, p=0.99)
+threshold = np.quantile(val_ok_scores, p=0.98)
 ```
 
-Interpretation: a score is classified as anomalous if it exceeds the 99th
+Interpretation: a score is classified as anomalous if it exceeds the 98th
 percentile of normal validation scores.
 
 ### Alternative strategies
@@ -132,6 +166,7 @@ Module: `shared/metrics.py`
 | Metric | Description |
 |---|---|
 | **AUROC** | Area under ROC curve (threshold-independent ranking) |
+| **Average Precision** | Area under Precision-Recall curve (AU-PR) |
 | **Precision** | TP / (TP + FP) at the val-derived threshold |
 | **Recall** | TP / (TP + FN) at the val-derived threshold |
 | **F1** | Harmonic mean of precision and recall |
@@ -239,24 +274,38 @@ model & AUROC & F1 & Latency & GPU Memory \\
 
 ---
 
-## 8. Few-shot evaluation
+## 8. Benchmark modes
 
-Configuration key: `few_shot_sizes` in `benchmark/config.yaml`.
+Configuration key: `benchmark_mode` in `benchmark/config.yaml`.
 
-Default sizes: **[10, 25, 50, 100]**.
+### Main mode (`--mode main`)
 
-When invoked with the `--few-shot` flag:
+Runs each model at its dataset-specific full training size
+(`main_train_ok` from the dataset registry), across all 3 seeds.
+This is the primary benchmark result.
 
 ```bash
-python benchmark/run.py --dataset casting --model patchcore --few-shot
+python benchmark/run.py --dataset wood --model patchcore --mode main
 ```
 
-The orchestrator runs the full `(model × seed × n_train)` grid for all
-configured few-shot sizes. This produces comparable curves showing how
-model performance scales with the number of training samples.
+### Few-shot mode (`--mode fewshot`)
+
+Runs the full `(model × seed × n_train)` grid for all nested
+few-shot levels defined in the dataset registry. This produces
+comparable curves showing how model performance scales with the number
+of training samples.
+
+```bash
+python benchmark/run.py --dataset wood --model patchcore --mode fewshot
+```
+
+Few-shot levels are dataset-specific (e.g., bottle: [10, 25, 50, 100, 159]).
+The full training size is always the last level.
 
 The few-shot invariant (Section 1) guarantees that val and test sets are
 identical across all `n_train` values for a given `(dataset_id, seed)`.
+Few-shot subsets are nested (Section 1) so performance differences are
+attributable to additional training data.
 
 ---
 
@@ -283,8 +332,16 @@ Each file contains:
 
 ### "Not enough OK images"
 
-The split manager requires at least `test_ok(200) + val_ok(15%) + n_train`
-OK images. With small datasets, reduce `n_train` or use a larger dataset.
+The split manager verifies that enough OK images exist for
+`val + n_train` (official_test policy) or `test + val + n_train`
+(custom_holdout policy). Reduce `n_train` or check that the dataset
+matches the counts in `shared/dataset_registry.py`.
+
+### "Dataset not registered"
+
+All datasets must be registered in `shared/dataset_registry.py` before
+use. Add a new `DatasetConfig` entry with the correct split policy and
+pool sizes.
 
 ### Different results across runs
 

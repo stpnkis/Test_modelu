@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -16,9 +17,95 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
+# ── Consistency validation ───────────────────────────────────────────────────
+
+
+def _validate_seed_consistency(
+    per_seed_data: Dict[int, Dict[str, Any]],
+    expected_seeds: List[int],
+    dataset_id: str,
+    model_name: str,
+    preprocessing_mode: str,
+    n_train: int,
+) -> None:
+    """Validate that all seed results are consistent and match expectations.
+
+    Guards against stale artifacts, mixed configurations, and incomplete runs.
+
+    Raises:
+        ValueError: If any consistency check fails.
+    """
+    # ---- Duplicate seeds in the request itself ----
+    if len(expected_seeds) != len(set(expected_seeds)):
+        raise ValueError(
+            f"Duplicate seeds in expected list: {expected_seeds}"
+        )
+
+    # ---- Exact seed-set match ----
+    actual_seeds = set(per_seed_data.keys())
+    expected_set = set(expected_seeds)
+    if actual_seeds != expected_set:
+        missing = sorted(expected_set - actual_seeds)
+        extra = sorted(actual_seeds - expected_set)
+        parts = []
+        if missing:
+            parts.append(f"missing seeds: {missing}")
+        if extra:
+            parts.append(f"unexpected seeds: {extra}")
+        raise ValueError(
+            f"Seed mismatch for {model_name}/{dataset_id}: {'; '.join(parts)}. "
+            f"Expected exactly: {sorted(expected_seeds)}"
+        )
+
+    # ---- Top-level field consistency across seeds ----
+    EXPECTED_FIELDS = {
+        "model_name": model_name,
+        "dataset_id": dataset_id,
+        "n_train": n_train,
+        "preprocessing_mode": preprocessing_mode,
+    }
+    for seed, data in per_seed_data.items():
+        for field, expected_val in EXPECTED_FIELDS.items():
+            actual_val = data.get(field)
+            if actual_val is not None and actual_val != expected_val:
+                raise ValueError(
+                    f"Inconsistent '{field}' in seed={seed} results: "
+                    f"expected {expected_val!r}, got {actual_val!r}. "
+                    f"Possible stale artifact at {data.get('timestamp', '?')}."
+                )
+
+    # ---- Threshold config consistency across seeds ----
+    threshold_strategies: dict[int, str] = {}
+    threshold_quantiles: dict[int, float] = {}
+    for seed, data in per_seed_data.items():
+        config = data.get("config", {})
+        ts = config.get("threshold_strategy")
+        tq = config.get("threshold_quantile_p")
+        if ts is not None:
+            threshold_strategies[seed] = ts
+        if tq is not None:
+            threshold_quantiles[seed] = tq
+
+    if len(set(threshold_strategies.values())) > 1:
+        raise ValueError(
+            f"Inconsistent threshold_strategy across seeds: {threshold_strategies}"
+        )
+    if len(set(threshold_quantiles.values())) > 1:
+        raise ValueError(
+            f"Inconsistent threshold_quantile_p across seeds: {threshold_quantiles}"
+        )
+
+    logger.info(
+        "Consistency OK: %s/%s mode=%s n_train=%d seeds=%s",
+        dataset_id, model_name, preprocessing_mode, n_train,
+        sorted(expected_seeds),
+    )
+
 # Metrics to aggregate
 AGGREGATE_KEYS = [
     "auroc",
+    "average_precision",
     "precision",
     "recall",
     "f1",
@@ -74,6 +161,17 @@ def aggregate_seeds(
 
         per_seed_data[seed] = data
 
+    # ---- Validate consistency before aggregating ----
+    _validate_seed_consistency(
+        per_seed_data,
+        expected_seeds=seeds,
+        dataset_id=dataset_id,
+        model_name=model_name,
+        preprocessing_mode=preprocessing_mode,
+        n_train=n_train,
+    )
+
+    for seed, data in per_seed_data.items():
         # Collect numeric metric values
         metrics = data.get("metrics", {})
         runtime = data.get("runtime", {})
@@ -98,8 +196,12 @@ def aggregate_seeds(
     summary: Dict[str, Any] = {
         "dataset_id": dataset_id,
         "model_name": model_name,
+        "preprocessing_mode": preprocessing_mode,
+        "n_train": n_train,
         "seeds": seeds,
         "n_seeds_found": len(per_seed_data),
+        "n_seeds_expected": len(seeds),
+        "aggregation_timestamp": datetime.now().isoformat(),
         "mean": {},
         "std": {},
     }
@@ -137,7 +239,7 @@ def aggregate_seeds(
 def format_latex_row(summary: Dict[str, Any]) -> str:
     """Format a summary as a LaTeX table row.
 
-    Format: ``model & AUROC & AU-PRO & Prec & Rec & F1 & latency \\\\``
+    Format: ``model & AUROC & AP & AU-PRO & Prec & Rec & F1 & latency \\\\``
     """
 
     def _fmt(key: str) -> str:
@@ -150,6 +252,7 @@ def format_latex_row(summary: Dict[str, Any]) -> str:
     cols = [
         summary["model_name"],
         _fmt("auroc"),
+        _fmt("average_precision"),
         _fmt("aupro"),
         _fmt("precision"),
         _fmt("recall"),

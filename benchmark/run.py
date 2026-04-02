@@ -2,20 +2,27 @@
 """
 Benchmark CLI — main entry point for running anomaly-detection benchmarks.
 
+Supports two benchmark modes:
+    ``main``    — primary model-selection benchmark (max available train data)
+    ``fewshot`` — supplementary low-data robustness study (nested subsets)
+
 Usage examples:
 
-    # Single model on a dataset
-    python benchmark/run.py --dataset casting --model patchcore
+    # Main benchmark (default): uses max train data per dataset registry
+    python benchmark/run.py --dataset wood --model patchcore --mode main
 
-    # All models
-    python benchmark/run.py --dataset casting --all-models
+    # Main benchmark with all models
+    python benchmark/run.py --dataset wood --all-models --mode main
 
-    # Full control
-    python benchmark/run.py --dataset casting --model patchcore \\
-        --n-train-ok 100 --seeds 42 1337 2026 --preprocessing-mode baseline
+    # Few-shot study: runs all nested sizes from dataset registry
+    python benchmark/run.py --dataset wood --model patchcore --mode fewshot
+
+    # Explicit override (advanced)
+    python benchmark/run.py --dataset wood --model patchcore \\
+        --n-train-ok 100 --seeds 42 1337 2026
 
     # Aggregate only (no training)
-    python benchmark/run.py --dataset casting --aggregate-only
+    python benchmark/run.py --dataset wood --aggregate-only --mode main
 """
 from __future__ import annotations
 
@@ -33,6 +40,11 @@ import yaml
 
 from shared.aggregate import aggregate_seeds, format_latex_row, save_summary
 from shared.dataset_schema import validate_dataset
+from shared.dataset_registry import (
+    get_dataset_config,
+    get_main_n_train,
+    get_few_shot_levels,
+)
 from shared.split_manager import create_split
 from benchmark.orchestrator import (
     orchestrate,
@@ -83,10 +95,19 @@ def main() -> None:
         help="Run all models",
     )
     parser.add_argument(
+        "--mode",
+        type=str,
+        default=None,
+        choices=["main", "fewshot"],
+        help="Benchmark mode: main (max train data) or fewshot (nested subsets). "
+        "Overrides config.yaml benchmark_mode.",
+    )
+    parser.add_argument(
         "--n-train-ok",
         type=int,
         default=None,
-        help="Number of OK training images (overrides config.yaml)",
+        help="Number of OK training images (overrides registry default). "
+        "In main mode, defaults to the dataset's main_train_ok from the registry.",
     )
     parser.add_argument(
         "--seeds",
@@ -120,7 +141,8 @@ def main() -> None:
     parser.add_argument(
         "--few-shot",
         action="store_true",
-        help="Run few-shot sample-efficiency study (sizes from config.yaml)",
+        help="(DEPRECATED: use --mode fewshot) "
+        "Run few-shot study — equivalent to --mode fewshot.",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
 
@@ -133,10 +155,44 @@ def main() -> None:
 
     dataset_id = args.dataset
     seeds = args.seeds or cfg.get("seeds", [42, 1337, 2026])
-    n_train = args.n_train_ok or cfg.get("n_train_ok", 100)
     preprocessing_mode = args.preprocessing_mode or cfg.get(
         "preprocessing_mode", "baseline"
     )
+
+    # ── Resolve benchmark mode ──────────────────────────────────────
+    if args.few_shot:
+        logger.warning("--few-shot is deprecated. Use --mode fewshot instead.")
+    benchmark_mode = (
+        args.mode
+        or ("fewshot" if args.few_shot else None)
+        or cfg.get("benchmark_mode", "main")
+    )
+
+    # ── Resolve n_train from registry or override ───────────────────
+    try:
+        ds_cfg = get_dataset_config(dataset_id)
+    except KeyError as e:
+        parser.error(str(e))
+        return
+
+    if args.n_train_ok is not None:
+        n_train = args.n_train_ok
+    elif benchmark_mode == "main":
+        n_train = ds_cfg.main_train_ok
+    else:
+        # fewshot mode — n_train is not used directly; few_shot_levels are
+        n_train = ds_cfg.main_train_ok  # placeholder for aggregate-only
+
+    few_shot_levels = list(ds_cfg.few_shot_levels)
+
+    logger.info(
+        "Mode: %s  dataset: %s  n_train: %d  few_shot_levels: %s",
+        benchmark_mode,
+        dataset_id,
+        n_train,
+        few_shot_levels if benchmark_mode == "fewshot" else "N/A",
+    )
+
     # ── Validate config early ───────────────────────────────────────────────
     VALID_PREPROCESSING_MODES = {"baseline", "high_accuracy", "edge_safe"}
     VALID_THRESHOLD_STRATEGIES = {"quantile", "max", "k_sigma"}
@@ -156,7 +212,7 @@ def main() -> None:
     splits_root = paths.get("splits_root", "splits")
     experiments_root = paths.get("experiments_root", "experiments")
     threshold_strategy = cfg.get("threshold_strategy", "quantile")
-    threshold_quantile_p = cfg.get("threshold_quantile_p", 0.99)
+    threshold_quantile_p = cfg.get("threshold_quantile_p", 0.98)
 
     # Resolve models
     if args.all_models:
@@ -177,6 +233,14 @@ def main() -> None:
 
     # ── Aggregate only ───────────────────────────────────────────────
     if args.aggregate_only:
+        logger.info("=" * 70)
+        logger.info("  AGGREGATE-ONLY RUN (no training)")
+        logger.info(
+            "  dataset=%s  models=%s  seeds=%s  n_train=%d  mode=%s",
+            dataset_id, models, seeds, n_train, preprocessing_mode,
+        )
+        logger.info("  experiments_root=%s", experiments_root)
+        logger.info("=" * 70)
         for model_name in models:
             summary = aggregate_seeds(
                 experiments_root,
@@ -203,14 +267,13 @@ def main() -> None:
         return
 
     # ── Few-shot study ─────────────────────────────────────────────
-    if args.few_shot:
-        few_shot_sizes = cfg.get("few_shot_sizes", [10, 25, 50, 100])
+    if benchmark_mode == "fewshot":
         logger.info("=" * 70)
         logger.info(
-            "  FEW-SHOT STUDY: dataset=%s  models=%s  sizes=%s",
+            "  FEW-SHOT STUDY: dataset=%s  models=%s  levels=%s",
             dataset_id,
             models,
-            few_shot_sizes,
+            few_shot_levels,
         )
         logger.info("=" * 70)
 
@@ -218,7 +281,7 @@ def main() -> None:
             dataset_id=dataset_id,
             models=models,
             seeds=seeds,
-            few_shot_sizes=few_shot_sizes,
+            few_shot_sizes=few_shot_levels,
             preprocessing_mode=preprocessing_mode,
             datasets_root=datasets_root,
             splits_root=splits_root,
@@ -241,8 +304,20 @@ def main() -> None:
 
     # ── Full benchmark ───────────────────────────────────────────────
     logger.info("=" * 70)
-    logger.info("  BENCHMARK: dataset=%s  models=%s", dataset_id, models)
-    logger.info("  seeds=%s  n_train=%d  mode=%s", seeds, n_train, preprocessing_mode)
+    logger.info(
+        "  BENCHMARK RUN [%s]: dataset=%s  models=%s",
+        benchmark_mode.upper(),
+        dataset_id,
+        models,
+    )
+    logger.info(
+        "  seeds=%s  n_train=%d  preprocessing=%s",
+        seeds, n_train, preprocessing_mode,
+    )
+    logger.info(
+        "  threshold=%s(p=%.4f)  experiments_root=%s",
+        threshold_strategy, threshold_quantile_p, experiments_root,
+    )
     logger.info("=" * 70)
 
     results_map = orchestrate(
@@ -269,6 +344,7 @@ def main() -> None:
         std = summary.get("std", {})
         for key in [
             "auroc",
+            "average_precision",
             "precision",
             "recall",
             "f1",
@@ -287,7 +363,10 @@ def main() -> None:
 
     print("\n\nLaTeX table rows:")
     for model_name, summary in results_map.items():
-        print(format_latex_row(summary))
+        if "mean" in summary:
+            print(format_latex_row(summary))
+        else:
+            print(f"{model_name} & \\multicolumn{{9}}{{c}}{{FAILED}} \\\\")
 
 
 if __name__ == "__main__":

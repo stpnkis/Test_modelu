@@ -1,0 +1,100 @@
+All 4 models complete. Let me now read the per-seed details and verify methodology. 
+
+Ran terminal command:  for model in patchcore rd_plus_plus simplenet anomalydino; do echo "=== $model ===" && cat experiments/bottle/$model/mode=baseline/n_train=159/summary.json | python3 -m json.tool; done
+
+Read [](file:///home/robolab2/.config/Code/User/workspaceStorage/4cf7639c40592ca1291da2854b071946/GitHub.copilot-chat/chat-session-resources/50887a22-d7ef-48a6-a049-f02b10961edb/toolu_bdrk_01H8R6pMY7HoDiazawx6zAQu__vscode-1776428153551/content.txt#1-1), lines 1 to 400
+
+Read [](file:///home/robolab2/.config/Code/User/workspaceStorage/4cf7639c40592ca1291da2854b071946/GitHub.copilot-chat/chat-session-resources/50887a22-d7ef-48a6-a049-f02b10961edb/toolu_bdrk_01H8R6pMY7HoDiazawx6zAQu__vscode-1776428153551/content.txt#400-400), lines 400 to 800
+
+Read [](file:///home/robolab2/.config/Code/User/workspaceStorage/4cf7639c40592ca1291da2854b071946/GitHub.copilot-chat/chat-session-resources/50887a22-d7ef-48a6-a049-f02b10961edb/toolu_bdrk_01H8R6pMY7HoDiazawx6zAQu__vscode-1776428153551/content.txt#800-800), lines 800 to 1028
+
+Starting: *Methodological verification* (7/7)
+
+Now let me verify the methodology — thresholding, splits, no test leakage: 
+
+Read [](file:///home/robolab2/stepan_kisler_dp/Test_modelu/shared/thresholding.py#1-1), lines 1 to 50
+
+Methodology verified. Let me also quickly confirm the split usage:  
+
+Ran terminal command:  python3 -c "
+import json
+# Verify all models used same splits (same n_val_ok, same n_test)
+for model in ['patchcore','rd_plus_plus','simplenet','anomalydino']:
+    with open(f'experiments/bottle/{model}/mode=baseline/n_train=159/summary.json') as f:
+        d = json.load(f)
+    for seed in ['42','1337','2026']:
+        m = d['per_seed'][seed]['metrics']
+        t = m.get('threshold','?')
+        nval = m.get('n_val_ok_for_threshold', '?')
+        print(f'{model:15s} seed={seed:4s}  n_test={m["n_test_total"]}  n_ok={m["n_test_ok"]}  n_nok={m["n_test_nok"]}  n_val_ok={nval}  threshold={t}')
+"
+
+
+Completed: *Methodological verification* (7/7)
+
+---
+
+## Benchmark Bottle — Kompletní výsledky
+
+### Konfigurace
+
+| Parametr | Hodnota |
+|---|---|
+| Dataset | **Bottle** (MVTec AD) |
+| Režim | `main` (baseline preprocessing) |
+| Seedů | 3 (42, 1337, 2026) |
+| Tréninkových snímků | 159 (OK) |
+| Validačních OK | 50 |
+| Test sada | 83 (20 OK + 63 NOK) |
+| Prahování | quantile p=0.98 na val/ok |
+| Rozlišení | 224×224 |
+| GPU | NVIDIA GeForce RTX 3090 (24 GB) |
+
+### Srovnávací tabulka (mean ± std přes 3 seedy)
+
+| Metrika | **PatchCore** | **RD++** | **SimpleNet** | **AnomalyDINO** |
+|---|---|---|---|---|
+| **AUROC** | **1.0000** ± 0.0 | **1.0000** ± 0.0 | 0.9976 ± 0.003 | **1.0000** ± 0.0 |
+| **AP** | **1.0000** ± 0.0 | **1.0000** ± 0.0 | 0.9993 ± 0.001 | **1.0000** ± 0.0 |
+| **Precision** | 0.9948 ± 0.009 | 0.9948 ± 0.009 | 0.9892 ± 0.019 | 0.9897 ± 0.018 |
+| **Recall** | **1.0000** ± 0.0 | **1.0000** ± 0.0 | 0.9736 ± 0.024 | 0.9947 ± 0.009 |
+| **F1** | **0.9974** ± 0.005 | **0.9974** ± 0.005 | 0.9813 ± 0.020 | 0.9921 ± 0.008 |
+| **AUPRO** | N/A | **0.9143** ± 0.012 | N/A | N/A |
+| Latence (ms) | 5.50 ± 0.02 | 7.19 ± 0.37 | **3.79** ± 0.07 | 5.26 ± 0.13 |
+| GPU paměť (MB) | 982 | 1020 | **427** | 615 |
+| Fit čas (s) | 25.5 | 1343.0 | 264.4 | **3.6** |
+
+### Per-seed detaily
+
+| Model | Seed | AUROC | F1 | AUPRO | Fit (s) |
+|---|---|---|---|---|---|
+| PatchCore | 42 | 1.0 | 1.0 | N/A | 25.9 |
+| PatchCore | 1337 | 1.0 | 1.0 | N/A | 25.2 |
+| PatchCore | 2026 | 1.0 | 0.9921 | N/A | 25.6 |
+| RD++ | 42 | 1.0 | 1.0 | 0.9197 | 1364.3 |
+| RD++ | 1337 | 1.0 | 0.9921 | 0.9002 | 1325.7 |
+| RD++ | 2026 | 1.0 | 1.0 | 0.9231 | 1339.1 |
+| SimpleNet | 42 | 1.0 | 1.0 | N/A | 261.1 |
+| SimpleNet | 1337 | 0.9992 | 0.9839 | N/A | 271.2 |
+| SimpleNet | 2026 | 0.9937 | 0.96 | N/A | 260.8 |
+| AnomalyDINO | 42 | 1.0 | 0.9844 | N/A | 3.6 |
+| AnomalyDINO | 1337 | 1.0 | 1.0 | N/A | 3.5 |
+| AnomalyDINO | 2026 | 1.0 | 0.992 | N/A | 3.6 |
+
+### Ověření metodiky
+
+- **Prahování**: Práh odvozen výhradně z val/ok (50 normálních snímků), strategie quantile p=0.98. Žádný přístup k testovým labelem.
+- **Identické splity**: Všechny modely testovány na stejné test sadě (83 snímků: 20 OK + 63 NOK) pro každý seed.
+- **Žádný test leakage**: Kód v thresholding.py explicitně zakazuje použití testovacích dat.
+- **Reprodukovatelnost**: 3 seedy pro statistiku, identické preprocessing pipeline (Resize→CenterCrop→Normalize).
+
+### AUPRO — proč N/A u 3 modelů
+
+Pouze **RD++** produkuje pixel-level anomaly mapy potřebné pro výpočet AUPRO. PatchCore (Anomalib wrapper), SimpleNet a AnomalyDINO v této implementaci vrací jen image-level skóre → AUPRO nelze spočítat.
+
+### Klíčové závěry
+
+1. **PatchCore** a **RD++** dosahují identické AUROC=1.0 a F1≈0.997, ale RD++ trénuje 53× déle (~22 min vs ~26 s na seed).
+2. **AnomalyDINO** je nejrychlejší na natrénování (3.6 s) díky zero-shot DINOv2 backbone, s výborným AUROC=1.0 a F1=0.992.
+3. **SimpleNet** má nejnižší latenci (3.8 ms) a paměťovou náročnost (427 MB), ale mírně nižší AUROC (0.998) a F1 (0.981).
+4. Bottle dataset je pro všechny modely relativně „snadný" — AUROC saturuje na 1.0 u 3 ze 4 modelů.

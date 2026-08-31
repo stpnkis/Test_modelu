@@ -1,0 +1,86 @@
+{
+  "dataset_id": "pcb1",
+  "model_name": "rd_plus_plus",
+  "seed": 42,
+  "preprocessing_mode": "baseline",
+  "n_train": 50,
+  "timestamp": "2026-04-20T18:52:08.238438",
+  "environment": {
+    "git_sha": "unknown",
+    "timestamp": "2026-04-20T18:52:08.238969",
+    "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+    "python_version": "3.10.13",
+    "torch_version": "2.1.0",
+    "cuda_available": true,
+    "cuda_version": "11.8",
+    "gpu_name": "NVIDIA GeForce RTX 3090",
+    "gpu_count": 1,
+    "gpu_memory_total_mb": 24256.9
+  },
+  "metrics": {
+    "auroc": 0.9902,
+    "average_precision": 0.9914,
+    "precision": 1.0,
+    "recall": 0.82,
+    "f1": 0.9011,
+    "threshold": 0.897649,
+    "n_test_total": 200,
+    "n_test_ok": 100,
+    "n_test_nok": 100,
+    "n_val_ok_for_threshold": 100,
+    "aupro": 0.2331,
+    "aupro_fpr_limit": 0.3
+  },
+  "runtime": {
+    "model_only_latency_ms": 7.323,
+    "model_only_latency_std_ms": 0.997,
+    "end_to_end_latency_ms": 17.948,
+    "end_to_end_latency_std_ms": 0.807,
+    "gpu_peak_memory_mb": 1020.18,
+    "fit_time_s": 484.0,
+    "warmup_iterations": 10,
+    "measured_iterations": 30,
+    "device": "cuda",
+    "preprocessing_mode": "baseline",
+    "image_size": 224,
+    "batch_size": 1,
+    "timestamp": "2026-04-20T18:52:08.238242",
+    "config_snapshot": {
+      "backbone": "wide_resnet50_2",
+      "layers": [
+        "layer1",
+        "layer2",
+        "layer3"
+      ],
+      "epochs": 200,
+      "n_train": 50,
+      "seed": 42,
+      "dataset_id": "pcb1"
+    }
+  },
+  "config": {
+    "backbone": "wide_resnet50_2",
+    "layers": [
+      "layer1",
+      "layer2",
+      "layer3"
+    ],
+    "decoder_layers": [
+      3,
+      4,
+      6
+    ],
+    "width_per_group": 128,
+    "proj_base": 64,
+    "proj_lr": 0.001,
+    "distill_lr": 0.005,
+    "weight_proj": 0.2,
+    "n_train": 50,
+    "preprocessing_mode": "baseline",
+    "image_size": 224,
+    "threshold_strategy": "quantile",
+    "threshold_quantile_p": 0.98,
+    "epochs": 200,
+    "scoring_method": "direct_model_inference"
+  }
+}

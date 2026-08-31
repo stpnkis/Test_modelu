@@ -1,0 +1,298 @@
+{
+  "dataset_id": "pcb1",
+  "model_name": "rd_plus_plus",
+  "preprocessing_mode": "baseline",
+  "n_train": 804,
+  "seeds": [
+    42,
+    1337,
+    2026
+  ],
+  "n_seeds_found": 3,
+  "n_seeds_expected": 3,
+  "aggregation_timestamp": "2026-04-18T06:19:47.320653",
+  "mean": {
+    "auroc": 0.9934,
+    "average_precision": 0.9944,
+    "precision": 0.9865,
+    "recall": 0.95,
+    "f1": 0.9678,
+    "model_only_latency_ms": 11.9433,
+    "end_to_end_latency_ms": 22.809,
+    "gpu_peak_memory_mb": 1020.18,
+    "fit_time_s": 8961.3333,
+    "aupro": 0.2334
+  },
+  "std": {
+    "auroc": 0.0007,
+    "average_precision": 0.0007,
+    "precision": 0.0233,
+    "recall": 0.01,
+    "f1": 0.0124,
+    "model_only_latency_ms": 2.4271,
+    "end_to_end_latency_ms": 1.7509,
+    "gpu_peak_memory_mb": 0.0,
+    "fit_time_s": 28.453,
+    "aupro": 0.0118
+  },
+  "per_seed": {
+    "42": {
+      "dataset_id": "pcb1",
+      "model_name": "rd_plus_plus",
+      "seed": 42,
+      "preprocessing_mode": "baseline",
+      "n_train": 804,
+      "timestamp": "2026-04-17T23:19:56.607302",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-17T23:19:56.607995",
+        "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.9941,
+        "average_precision": 0.9952,
+        "precision": 1.0,
+        "recall": 0.96,
+        "f1": 0.9796,
+        "threshold": 0.523057,
+        "n_test_total": 200,
+        "n_test_ok": 100,
+        "n_test_nok": 100,
+        "n_val_ok_for_threshold": 100,
+        "aupro": 0.2225,
+        "aupro_fpr_limit": 0.3
+      },
+      "runtime": {
+        "model_only_latency_ms": 11.062,
+        "model_only_latency_std_ms": 4.558,
+        "end_to_end_latency_ms": 23.175,
+        "end_to_end_latency_std_ms": 2.195,
+        "gpu_peak_memory_mb": 1020.18,
+        "fit_time_s": 8934.6,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-17T23:19:56.607029",
+        "config_snapshot": {
+          "backbone": "wide_resnet50_2",
+          "layers": [
+            "layer1",
+            "layer2",
+            "layer3"
+          ],
+          "epochs": 200,
+          "n_train": 804,
+          "seed": 42,
+          "dataset_id": "pcb1"
+        }
+      },
+      "config": {
+        "backbone": "wide_resnet50_2",
+        "layers": [
+          "layer1",
+          "layer2",
+          "layer3"
+        ],
+        "decoder_layers": [
+          3,
+          4,
+          6
+        ],
+        "width_per_group": 128,
+        "proj_base": 64,
+        "proj_lr": 0.001,
+        "distill_lr": 0.005,
+        "weight_proj": 0.2,
+        "n_train": 804,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "epochs": 200,
+        "scoring_method": "direct_model_inference"
+      }
+    },
+    "1337": {
+      "dataset_id": "pcb1",
+      "model_name": "rd_plus_plus",
+      "seed": 1337,
+      "preprocessing_mode": "baseline",
+      "n_train": 804,
+      "timestamp": "2026-04-18T01:50:08.289674",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-18T01:50:08.290328",
+        "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.9933,
+        "average_precision": 0.9942,
+        "precision": 1.0,
+        "recall": 0.94,
+        "f1": 0.9691,
+        "threshold": 0.48032,
+        "n_test_total": 200,
+        "n_test_ok": 100,
+        "n_test_nok": 100,
+        "n_val_ok_for_threshold": 100,
+        "aupro": 0.2318,
+        "aupro_fpr_limit": 0.3
+      },
+      "runtime": {
+        "model_only_latency_ms": 14.688,
+        "model_only_latency_std_ms": 1.472,
+        "end_to_end_latency_ms": 24.348,
+        "end_to_end_latency_std_ms": 2.704,
+        "gpu_peak_memory_mb": 1020.18,
+        "fit_time_s": 8991.24,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-18T01:50:08.289472",
+        "config_snapshot": {
+          "backbone": "wide_resnet50_2",
+          "layers": [
+            "layer1",
+            "layer2",
+            "layer3"
+          ],
+          "epochs": 200,
+          "n_train": 804,
+          "seed": 1337,
+          "dataset_id": "pcb1"
+        }
+      },
+      "config": {
+        "backbone": "wide_resnet50_2",
+        "layers": [
+          "layer1",
+          "layer2",
+          "layer3"
+        ],
+        "decoder_layers": [
+          3,
+          4,
+          6
+        ],
+        "width_per_group": 128,
+        "proj_base": 64,
+        "proj_lr": 0.001,
+        "distill_lr": 0.005,
+        "weight_proj": 0.2,
+        "n_train": 804,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "epochs": 200,
+        "scoring_method": "direct_model_inference"
+      }
+    },
+    "2026": {
+      "dataset_id": "pcb1",
+      "model_name": "rd_plus_plus",
+      "seed": 2026,
+      "preprocessing_mode": "baseline",
+      "n_train": 804,
+      "timestamp": "2026-04-18T04:19:46.792041",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-18T04:19:46.792672",
+        "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.9928,
+        "average_precision": 0.9939,
+        "precision": 0.9596,
+        "recall": 0.95,
+        "f1": 0.9548,
+        "threshold": 0.447056,
+        "n_test_total": 200,
+        "n_test_ok": 100,
+        "n_test_nok": 100,
+        "n_val_ok_for_threshold": 100,
+        "aupro": 0.2459,
+        "aupro_fpr_limit": 0.3
+      },
+      "runtime": {
+        "model_only_latency_ms": 10.08,
+        "model_only_latency_std_ms": 0.745,
+        "end_to_end_latency_ms": 20.904,
+        "end_to_end_latency_std_ms": 1.022,
+        "gpu_peak_memory_mb": 1020.18,
+        "fit_time_s": 8958.16,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-18T04:19:46.791845",
+        "config_snapshot": {
+          "backbone": "wide_resnet50_2",
+          "layers": [
+            "layer1",
+            "layer2",
+            "layer3"
+          ],
+          "epochs": 200,
+          "n_train": 804,
+          "seed": 2026,
+          "dataset_id": "pcb1"
+        }
+      },
+      "config": {
+        "backbone": "wide_resnet50_2",
+        "layers": [
+          "layer1",
+          "layer2",
+          "layer3"
+        ],
+        "decoder_layers": [
+          3,
+          4,
+          6
+        ],
+        "width_per_group": 128,
+        "proj_base": 64,
+        "proj_lr": 0.001,
+        "distill_lr": 0.005,
+        "weight_proj": 0.2,
+        "n_train": 804,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "epochs": 200,
+        "scoring_method": "direct_model_inference"
+      }
+    }
+  }
+}

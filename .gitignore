@@ -10,6 +10,8 @@ build/
 # --- Experiment outputs (auto-generated — do not commit) ---
 experiments/*/logs/
 experiments/**/*.pth
+experiments/**/*.ckpt
+experiments/**/weights/
 experiments/**/*.log
 experiments/**/*.csv
 

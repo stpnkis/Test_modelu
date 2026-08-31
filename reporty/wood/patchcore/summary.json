@@ -1,0 +1,278 @@
+{
+  "dataset_id": "wood",
+  "model_name": "patchcore",
+  "preprocessing_mode": "baseline",
+  "n_train": 197,
+  "seeds": [
+    42,
+    1337,
+    2026
+  ],
+  "n_seeds_found": 3,
+  "n_seeds_expected": 3,
+  "aggregation_timestamp": "2026-04-17T18:14:38.426992",
+  "mean": {
+    "auroc": 0.9927,
+    "average_precision": 0.9978,
+    "precision": 0.9466,
+    "recall": 0.9833,
+    "f1": 0.9646,
+    "model_only_latency_ms": 5.673,
+    "end_to_end_latency_ms": 29.2197,
+    "gpu_peak_memory_mb": 1175.49,
+    "fit_time_s": 31.84,
+    "aupro": "N/A"
+  },
+  "std": {
+    "auroc": 0.0005,
+    "average_precision": 0.0001,
+    "precision": 0.0087,
+    "recall": 0.0,
+    "f1": 0.0046,
+    "model_only_latency_ms": 0.0231,
+    "end_to_end_latency_ms": 0.263,
+    "gpu_peak_memory_mb": 0.0,
+    "fit_time_s": 1.2102,
+    "aupro": "N/A"
+  },
+  "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+  "per_seed": {
+    "42": {
+      "dataset_id": "wood",
+      "model_name": "patchcore",
+      "seed": 42,
+      "preprocessing_mode": "baseline",
+      "n_train": 197,
+      "timestamp": "2026-04-17T16:13:18.471164",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-17T16:13:18.472551",
+        "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.993,
+        "average_precision": 0.9979,
+        "precision": 0.9516,
+        "recall": 0.9833,
+        "f1": 0.9672,
+        "threshold": 25.055533,
+        "n_test_total": 79,
+        "n_test_ok": 19,
+        "n_test_nok": 60,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+        "n_val_ok_for_threshold": 50,
+        "anomalib_internal_split_disabled": true
+      },
+      "runtime": {
+        "model_only_latency_ms": 5.695,
+        "model_only_latency_std_ms": 0.093,
+        "end_to_end_latency_ms": 28.991,
+        "end_to_end_latency_std_ms": 0.152,
+        "gpu_peak_memory_mb": 1175.49,
+        "fit_time_s": 33.23,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-17T16:13:18.470482",
+        "config_snapshot": {
+          "backbone": "resnet50",
+          "layers": [
+            "layer2",
+            "layer3"
+          ],
+          "coreset_sampling_ratio": 0.1,
+          "num_neighbors": 15,
+          "n_train": 197,
+          "seed": 42,
+          "dataset_id": "wood"
+        }
+      },
+      "config": {
+        "backbone": "resnet50",
+        "layers": [
+          "layer2",
+          "layer3"
+        ],
+        "coreset_sampling_ratio": 0.1,
+        "num_neighbors": 15,
+        "n_train": 197,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "anomalib_val_split_mode": "same_as_test",
+        "anomalib_internal_split_disabled": true,
+        "scoring_method": "direct_model_inference"
+      }
+    },
+    "1337": {
+      "dataset_id": "wood",
+      "model_name": "patchcore",
+      "seed": 1337,
+      "preprocessing_mode": "baseline",
+      "n_train": 197,
+      "timestamp": "2026-04-17T16:13:58.081680",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-17T16:13:58.083094",
+        "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.9921,
+        "average_precision": 0.9977,
+        "precision": 0.9365,
+        "recall": 0.9833,
+        "f1": 0.9593,
+        "threshold": 24.522564,
+        "n_test_total": 79,
+        "n_test_ok": 19,
+        "n_test_nok": 60,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+        "n_val_ok_for_threshold": 50,
+        "anomalib_internal_split_disabled": true
+      },
+      "runtime": {
+        "model_only_latency_ms": 5.649,
+        "model_only_latency_std_ms": 0.037,
+        "end_to_end_latency_ms": 29.161,
+        "end_to_end_latency_std_ms": 0.18,
+        "gpu_peak_memory_mb": 1175.49,
+        "fit_time_s": 31.27,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-17T16:13:58.081415",
+        "config_snapshot": {
+          "backbone": "resnet50",
+          "layers": [
+            "layer2",
+            "layer3"
+          ],
+          "coreset_sampling_ratio": 0.1,
+          "num_neighbors": 15,
+          "n_train": 197,
+          "seed": 1337,
+          "dataset_id": "wood"
+        }
+      },
+      "config": {
+        "backbone": "resnet50",
+        "layers": [
+          "layer2",
+          "layer3"
+        ],
+        "coreset_sampling_ratio": 0.1,
+        "num_neighbors": 15,
+        "n_train": 197,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "anomalib_val_split_mode": "same_as_test",
+        "anomalib_internal_split_disabled": true,
+        "scoring_method": "direct_model_inference"
+      }
+    },
+    "2026": {
+      "dataset_id": "wood",
+      "model_name": "patchcore",
+      "seed": 2026,
+      "preprocessing_mode": "baseline",
+      "n_train": 197,
+      "timestamp": "2026-04-17T16:14:37.543345",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-17T16:14:37.544816",
+        "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.993,
+        "average_precision": 0.9979,
+        "precision": 0.9516,
+        "recall": 0.9833,
+        "f1": 0.9672,
+        "threshold": 25.502904,
+        "n_test_total": 79,
+        "n_test_ok": 19,
+        "n_test_nok": 60,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+        "n_val_ok_for_threshold": 50,
+        "anomalib_internal_split_disabled": true
+      },
+      "runtime": {
+        "model_only_latency_ms": 5.675,
+        "model_only_latency_std_ms": 0.06,
+        "end_to_end_latency_ms": 29.507,
+        "end_to_end_latency_std_ms": 0.682,
+        "gpu_peak_memory_mb": 1175.49,
+        "fit_time_s": 31.02,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-17T16:14:37.543081",
+        "config_snapshot": {
+          "backbone": "resnet50",
+          "layers": [
+            "layer2",
+            "layer3"
+          ],
+          "coreset_sampling_ratio": 0.1,
+          "num_neighbors": 15,
+          "n_train": 197,
+          "seed": 2026,
+          "dataset_id": "wood"
+        }
+      },
+      "config": {
+        "backbone": "resnet50",
+        "layers": [
+          "layer2",
+          "layer3"
+        ],
+        "coreset_sampling_ratio": 0.1,
+        "num_neighbors": 15,
+        "n_train": 197,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "anomalib_val_split_mode": "same_as_test",
+        "anomalib_internal_split_disabled": true,
+        "scoring_method": "direct_model_inference"
+      }
+    }
+  }
+}

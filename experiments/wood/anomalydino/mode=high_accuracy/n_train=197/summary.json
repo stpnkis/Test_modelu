@@ -1,0 +1,236 @@
+{
+  "dataset_id": "wood",
+  "model_name": "anomalydino",
+  "preprocessing_mode": "high_accuracy",
+  "n_train": 197,
+  "seeds": [
+    42,
+    1337,
+    2026
+  ],
+  "n_seeds_found": 3,
+  "n_seeds_expected": 3,
+  "aggregation_timestamp": "2026-04-22T13:45:02.631978",
+  "mean": {
+    "auroc": 0.9965,
+    "average_precision": 0.9989,
+    "precision": 0.9012,
+    "recall": 1.0,
+    "f1": 0.9477,
+    "model_only_latency_ms": 46.9117,
+    "end_to_end_latency_ms": 70.5713,
+    "gpu_peak_memory_mb": 3266.87,
+    "fit_time_s": 8.9567,
+    "aupro": "N/A"
+  },
+  "std": {
+    "auroc": 0.0,
+    "average_precision": 0.0,
+    "precision": 0.0408,
+    "recall": 0.0,
+    "f1": 0.0227,
+    "model_only_latency_ms": 0.9426,
+    "end_to_end_latency_ms": 1.4386,
+    "gpu_peak_memory_mb": 0.0,
+    "fit_time_s": 0.0929,
+    "aupro": "N/A"
+  },
+  "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+  "per_seed": {
+    "42": {
+      "dataset_id": "wood",
+      "model_name": "anomalydino",
+      "seed": 42,
+      "preprocessing_mode": "high_accuracy",
+      "n_train": 197,
+      "timestamp": "2026-04-22T11:44:12.039314",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-22T11:44:12.040803",
+        "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.9965,
+        "average_precision": 0.9989,
+        "precision": 0.9091,
+        "recall": 1.0,
+        "f1": 0.9524,
+        "threshold": 0.180135,
+        "n_test_total": 79,
+        "n_test_ok": 19,
+        "n_test_nok": 60,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks."
+      },
+      "runtime": {
+        "model_only_latency_ms": 47.946,
+        "model_only_latency_std_ms": 1.103,
+        "end_to_end_latency_ms": 69.849,
+        "end_to_end_latency_std_ms": 0.969,
+        "gpu_peak_memory_mb": 3266.87,
+        "fit_time_s": 9.06,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "high_accuracy",
+        "image_size": 448,
+        "batch_size": 1,
+        "timestamp": "2026-04-22T11:44:12.039005",
+        "config_snapshot": {
+          "backbone": "dinov2_vits14",
+          "n_train": 197,
+          "seed": 42,
+          "dataset_id": "wood"
+        }
+      },
+      "config": {
+        "backbone": "dinov2_vits14",
+        "layers": "[8, 9, 10, 11]",
+        "aggregation": "topk_mean",
+        "topk_ratio": 0.01,
+        "n_train": 197,
+        "preprocessing_mode": "high_accuracy",
+        "image_size": 448,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98
+      }
+    },
+    "1337": {
+      "dataset_id": "wood",
+      "model_name": "anomalydino",
+      "seed": 1337,
+      "preprocessing_mode": "high_accuracy",
+      "n_train": 197,
+      "timestamp": "2026-04-22T11:44:36.845151",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-22T11:44:36.846513",
+        "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.9965,
+        "average_precision": 0.9989,
+        "precision": 0.8571,
+        "recall": 1.0,
+        "f1": 0.9231,
+        "threshold": 0.175169,
+        "n_test_total": 79,
+        "n_test_ok": 19,
+        "n_test_nok": 60,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks."
+      },
+      "runtime": {
+        "model_only_latency_ms": 46.101,
+        "model_only_latency_std_ms": 0.73,
+        "end_to_end_latency_ms": 69.637,
+        "end_to_end_latency_std_ms": 2.28,
+        "gpu_peak_memory_mb": 3266.87,
+        "fit_time_s": 8.88,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "high_accuracy",
+        "image_size": 448,
+        "batch_size": 1,
+        "timestamp": "2026-04-22T11:44:36.844924",
+        "config_snapshot": {
+          "backbone": "dinov2_vits14",
+          "n_train": 197,
+          "seed": 1337,
+          "dataset_id": "wood"
+        }
+      },
+      "config": {
+        "backbone": "dinov2_vits14",
+        "layers": "[8, 9, 10, 11]",
+        "aggregation": "topk_mean",
+        "topk_ratio": 0.01,
+        "n_train": 197,
+        "preprocessing_mode": "high_accuracy",
+        "image_size": 448,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98
+      }
+    },
+    "2026": {
+      "dataset_id": "wood",
+      "model_name": "anomalydino",
+      "seed": 2026,
+      "preprocessing_mode": "high_accuracy",
+      "n_train": 197,
+      "timestamp": "2026-04-22T11:45:02.081580",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-22T11:45:02.082958",
+        "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.9965,
+        "average_precision": 0.9989,
+        "precision": 0.9375,
+        "recall": 1.0,
+        "f1": 0.9677,
+        "threshold": 0.201031,
+        "n_test_total": 79,
+        "n_test_ok": 19,
+        "n_test_nok": 60,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks."
+      },
+      "runtime": {
+        "model_only_latency_ms": 46.688,
+        "model_only_latency_std_ms": 1.116,
+        "end_to_end_latency_ms": 72.228,
+        "end_to_end_latency_std_ms": 0.977,
+        "gpu_peak_memory_mb": 3266.87,
+        "fit_time_s": 8.93,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "high_accuracy",
+        "image_size": 448,
+        "batch_size": 1,
+        "timestamp": "2026-04-22T11:45:02.081327",
+        "config_snapshot": {
+          "backbone": "dinov2_vits14",
+          "n_train": 197,
+          "seed": 2026,
+          "dataset_id": "wood"
+        }
+      },
+      "config": {
+        "backbone": "dinov2_vits14",
+        "layers": "[8, 9, 10, 11]",
+        "aggregation": "topk_mean",
+        "topk_ratio": 0.01,
+        "n_train": 197,
+        "preprocessing_mode": "high_accuracy",
+        "image_size": 448,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98
+      }
+    }
+  }
+}

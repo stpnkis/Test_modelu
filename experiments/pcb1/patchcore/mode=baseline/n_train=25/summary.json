@@ -1,0 +1,118 @@
+{
+  "dataset_id": "pcb1",
+  "model_name": "patchcore",
+  "preprocessing_mode": "baseline",
+  "n_train": 25,
+  "seeds": [
+    42
+  ],
+  "n_seeds_found": 1,
+  "n_seeds_expected": 1,
+  "aggregation_timestamp": "2026-04-20T20:38:41.062459",
+  "mean": {
+    "auroc": 0.9876,
+    "average_precision": 0.9882,
+    "precision": 1.0,
+    "recall": 0.73,
+    "f1": 0.8439,
+    "model_only_latency_ms": 3.359,
+    "end_to_end_latency_ms": 13.446,
+    "gpu_peak_memory_mb": 300.88,
+    "fit_time_s": 12.61,
+    "aupro": "N/A"
+  },
+  "std": {
+    "auroc": 0.0,
+    "average_precision": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "model_only_latency_ms": 0.0,
+    "end_to_end_latency_ms": 0.0,
+    "gpu_peak_memory_mb": 0.0,
+    "fit_time_s": 0.0,
+    "aupro": "N/A"
+  },
+  "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+  "per_seed": {
+    "42": {
+      "dataset_id": "pcb1",
+      "model_name": "patchcore",
+      "seed": 42,
+      "preprocessing_mode": "baseline",
+      "n_train": 25,
+      "timestamp": "2026-04-20T18:38:40.186423",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-20T18:38:40.187798",
+        "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.9876,
+        "average_precision": 0.9882,
+        "precision": 1.0,
+        "recall": 0.73,
+        "f1": 0.8439,
+        "threshold": 29.178297,
+        "n_test_total": 200,
+        "n_test_ok": 100,
+        "n_test_nok": 100,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+        "n_val_ok_for_threshold": 100,
+        "anomalib_internal_split_disabled": true
+      },
+      "runtime": {
+        "model_only_latency_ms": 3.359,
+        "model_only_latency_std_ms": 0.766,
+        "end_to_end_latency_ms": 13.446,
+        "end_to_end_latency_std_ms": 1.24,
+        "gpu_peak_memory_mb": 300.88,
+        "fit_time_s": 12.61,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-20T18:38:40.186168",
+        "config_snapshot": {
+          "backbone": "resnet50",
+          "layers": [
+            "layer2",
+            "layer3"
+          ],
+          "coreset_sampling_ratio": 0.1,
+          "num_neighbors": 15,
+          "n_train": 25,
+          "seed": 42,
+          "dataset_id": "pcb1"
+        }
+      },
+      "config": {
+        "backbone": "resnet50",
+        "layers": [
+          "layer2",
+          "layer3"
+        ],
+        "coreset_sampling_ratio": 0.1,
+        "num_neighbors": 15,
+        "n_train": 25,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "anomalib_val_split_mode": "same_as_test",
+        "anomalib_internal_split_disabled": true,
+        "scoring_method": "direct_model_inference"
+      }
+    }
+  }
+}

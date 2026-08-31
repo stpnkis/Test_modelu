@@ -1,0 +1,102 @@
+{
+  "dataset_id": "wood",
+  "model_name": "simplenet",
+  "preprocessing_mode": "baseline",
+  "n_train": 10,
+  "seeds": [
+    42
+  ],
+  "n_seeds_found": 1,
+  "n_seeds_expected": 1,
+  "aggregation_timestamp": "2026-04-20T22:56:31.114148",
+  "mean": {
+    "auroc": 0.5509,
+    "average_precision": 0.8334,
+    "precision": 1.0,
+    "recall": 0.0667,
+    "f1": 0.125,
+    "model_only_latency_ms": 3.567,
+    "end_to_end_latency_ms": 28.485,
+    "gpu_peak_memory_mb": 426.87,
+    "fit_time_s": 15.75,
+    "aupro": "N/A"
+  },
+  "std": {
+    "auroc": 0.0,
+    "average_precision": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "model_only_latency_ms": 0.0,
+    "end_to_end_latency_ms": 0.0,
+    "gpu_peak_memory_mb": 0.0,
+    "fit_time_s": 0.0,
+    "aupro": "N/A"
+  },
+  "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+  "per_seed": {
+    "42": {
+      "dataset_id": "wood",
+      "model_name": "simplenet",
+      "seed": 42,
+      "preprocessing_mode": "baseline",
+      "n_train": 10,
+      "timestamp": "2026-04-20T20:56:30.553124",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-20T20:56:30.553758",
+        "platform": "Linux-6.8.0-107-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.5509,
+        "average_precision": 0.8334,
+        "precision": 1.0,
+        "recall": 0.0667,
+        "f1": 0.125,
+        "threshold": 0.618356,
+        "n_test_total": 79,
+        "n_test_ok": 19,
+        "n_test_nok": 60,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks."
+      },
+      "runtime": {
+        "model_only_latency_ms": 3.567,
+        "model_only_latency_std_ms": 0.042,
+        "end_to_end_latency_ms": 28.485,
+        "end_to_end_latency_std_ms": 0.19,
+        "gpu_peak_memory_mb": 426.87,
+        "fit_time_s": 15.75,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-20T20:56:30.552871",
+        "config_snapshot": {
+          "backbone": "wide_resnet50_2",
+          "n_train": 10,
+          "seed": 42,
+          "dataset_id": "wood"
+        }
+      },
+      "config": {
+        "backbone": "wide_resnet50_2",
+        "n_train": 10,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "epochs": 200
+      }
+    }
+  }
+}

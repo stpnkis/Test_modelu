@@ -48,6 +48,10 @@ class DatasetConfig:
     source: str = ""
     has_masks: bool = False
 
+    # Subdirectory within datasets/<id>/ containing actual data
+    # (e.g. "can" for datasets/can/can/)
+    data_subdir: str = ""
+
 
 # ── Registry ─────────────────────────────────────────────────────────────────
 
@@ -107,6 +111,32 @@ DATASET_CONFIGS: Dict[str, DatasetConfig] = {
         source="Kaggle Casting Product (512×512)",
         has_masks=False,
     ),
+    "can": DatasetConfig(
+        dataset_id="can",
+        split_policy="fixed_official",
+        official_train_ok=412,   # train/good
+        official_test_ok=72,     # test_public/good
+        total_nok=90,            # test_public/bad
+        val_ok_count=46,         # validation/good
+        main_train_ok=412,       # all train/good used for training
+        few_shot_levels=[10, 25, 50, 100, 200, 412],
+        source="MVTec AD 2 — Can (test_pub only)",
+        has_masks=True,
+        data_subdir="can",       # datasets/can/can/
+    ),
+    "vial": DatasetConfig(
+        dataset_id="vial",
+        split_policy="fixed_official",
+        official_train_ok=291,   # train/good
+        official_test_ok=35,     # test_public/good
+        total_nok=105,           # test_public/bad
+        val_ok_count=41,         # validation/good
+        main_train_ok=291,       # all train/good used for training
+        few_shot_levels=[10, 25, 50, 100, 200, 291],
+        source="MVTec AD 2 — Vial (test_pub only)",
+        has_masks=True,
+        data_subdir="vial",      # datasets/vial/vial/
+    ),
 }
 
 
@@ -149,6 +179,8 @@ def validate_dataset_counts(
 
     if cfg.split_policy == "official_test":
         expected_ok = cfg.official_train_ok + cfg.official_test_ok
+    elif cfg.split_policy == "fixed_official":
+        expected_ok = cfg.official_train_ok + cfg.val_ok_count + cfg.official_test_ok
     else:
         expected_ok = cfg.custom_test_ok_count + cfg.val_ok_count + cfg.main_train_ok
 

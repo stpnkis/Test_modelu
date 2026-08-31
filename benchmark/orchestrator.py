@@ -180,7 +180,7 @@ def orchestrate(
 
     # 1. Validate
     logger.info("Validating dataset: %s", dataset_id)
-    validate_dataset(dataset_dir)
+    validate_dataset(dataset_dir, dataset_id=dataset_id)
 
     # 2. Create splits for all seeds
     for seed in seeds:
@@ -215,6 +215,18 @@ def orchestrate(
 
             # Pre-run audit: split manifest must exist
             _audit_pre_run(splits_root, dataset_id, seed, n_train)
+
+            # Skip if results already exist (saves time for few-shot reruns)
+            existing_dir = get_results_dir(
+                experiments_root, dataset_id, model_name, seed,
+                preprocessing_mode=preprocessing_mode, n_train=n_train,
+            )
+            if (existing_dir / "results.json").exists() and (existing_dir / "predictions.csv").exists():
+                logger.info(
+                    "  SKIP: %s seed=%d n_train=%d — results already exist at %s",
+                    model_name, seed, n_train, existing_dir,
+                )
+                continue
 
             rc = run_model_in_docker(
                 model_name=model_name,
@@ -315,6 +327,10 @@ def orchestrate_few_shot(
     Returns:
         Nested dict: ``{model_name: {n_train: summary_dict}}``.
     """
+    # Few-shot uses a single seed — averaging is done across datasets, not seeds.
+    seeds = seeds[:1]
+    logger.info("Few-shot mode: using single seed %d", seeds[0])
+
     results: Dict[str, Dict[int, Dict[str, Any]]] = {}
     for n_train in few_shot_sizes:
         logger.info("=" * 70)

@@ -33,12 +33,18 @@ def _list_images(directory: Path) -> List[Path]:
     )
 
 
-def validate_dataset(dataset_dir: str | Path) -> dict:
+def validate_dataset(dataset_dir: str | Path, dataset_id: str | None = None) -> dict:
     """Validate a dataset directory and return summary stats.
 
+    Supports two layouts:
+    - Standard: ``ok/``, ``nok/``, optionally ``masks/``
+    - MVTec AD 2 (``fixed_official``): ``train/good/``, ``validation/good/``,
+      ``test_public/good/``, ``test_public/bad/``
+
     Args:
-        dataset_dir: Path to ``datasets/<dataset_id>/`` containing
-                     ``ok/``, ``nok/``, and optionally ``masks/``.
+        dataset_dir: Path to ``datasets/<dataset_id>/`` (or resolved subdir).
+        dataset_id:  Optional dataset ID to look up the split policy for
+                     choosing the validation layout.
 
     Returns:
         Dictionary with keys ``ok_count``, ``nok_count``, ``mask_count``,
@@ -48,6 +54,92 @@ def validate_dataset(dataset_dir: str | Path) -> dict:
         DatasetValidationError: with a clear, actionable message.
     """
     root = Path(dataset_dir).resolve()
+
+    # Detect layout from registry if available
+    split_policy = None
+    if dataset_id:
+        try:
+            from shared.dataset_registry import get_dataset_config
+            cfg = get_dataset_config(dataset_id)
+            split_policy = cfg.split_policy
+            if cfg.data_subdir:
+                root = root / cfg.data_subdir
+        except (KeyError, ImportError):
+            pass
+
+    if split_policy == "fixed_official":
+        return _validate_fixed_official(root)
+
+    return _validate_standard(root)
+
+
+def _validate_fixed_official(root: Path) -> dict:
+    """Validate MVTec AD 2 layout: train/good, validation/good, test_public/."""
+    errors: List[str] = []
+
+    if not root.is_dir():
+        raise DatasetValidationError(
+            f"Dataset directory does not exist: {root}"
+        )
+
+    train_dir = root / "train" / "good"
+    val_dir = root / "validation" / "good"
+    test_good_dir = root / "test_public" / "good"
+    test_bad_dir = root / "test_public" / "bad"
+    masks_dir = root / "test_public" / "ground_truth" / "bad"
+
+    for d, label in [
+        (train_dir, "train/good"),
+        (val_dir, "validation/good"),
+        (test_good_dir, "test_public/good"),
+        (test_bad_dir, "test_public/bad"),
+    ]:
+        if not d.is_dir():
+            errors.append(f"Missing '{label}/' directory in {root}.")
+
+    if errors:
+        raise DatasetValidationError("\n".join(errors))
+
+    train_imgs = _list_images(train_dir)
+    val_imgs = _list_images(val_dir)
+    test_ok_imgs = _list_images(test_good_dir)
+    test_nok_imgs = _list_images(test_bad_dir)
+
+    for imgs, label in [
+        (train_imgs, "train/good"),
+        (val_imgs, "validation/good"),
+        (test_ok_imgs, "test_public/good"),
+        (test_nok_imgs, "test_public/bad"),
+    ]:
+        if not imgs:
+            errors.append(f"No images found in {root / label}.")
+
+    has_masks = masks_dir.is_dir()
+    mask_count = 0
+    if has_masks:
+        mask_count = len(_list_images(masks_dir))
+
+    if errors:
+        raise DatasetValidationError("\n".join(errors))
+
+    total_ok = len(train_imgs) + len(val_imgs) + len(test_ok_imgs)
+    stats = {
+        "ok_count": total_ok,
+        "nok_count": len(test_nok_imgs),
+        "mask_count": mask_count,
+        "has_masks": has_masks,
+        "train_ok": len(train_imgs),
+        "val_ok": len(val_imgs),
+        "test_ok": len(test_ok_imgs),
+        "test_nok": len(test_nok_imgs),
+    }
+    logger.info("Dataset validated (fixed_official): %s — %s", root.name, stats)
+    return stats
+
+
+def _validate_standard(root: Path) -> dict:
+    """Validate standard ok/nok layout."""
+    root = Path(root).resolve()
     errors: List[str] = []
 
     # ── Existence checks ─────────────────────────────────────────────

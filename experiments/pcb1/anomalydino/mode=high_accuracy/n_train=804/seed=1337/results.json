@@ -1,0 +1,65 @@
+{
+  "dataset_id": "pcb1",
+  "model_name": "anomalydino",
+  "seed": 1337,
+  "preprocessing_mode": "high_accuracy",
+  "n_train": 804,
+  "timestamp": "2026-04-22T11:47:47.751870",
+  "environment": {
+    "git_sha": "unknown",
+    "timestamp": "2026-04-22T11:47:47.753516",
+    "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.31",
+    "python_version": "3.10.13",
+    "torch_version": "2.1.0",
+    "cuda_available": true,
+    "cuda_version": "11.8",
+    "gpu_name": "NVIDIA GeForce RTX 3090",
+    "gpu_count": 1,
+    "gpu_memory_total_mb": 24256.9
+  },
+  "metrics": {
+    "auroc": 0.9847,
+    "average_precision": 0.988,
+    "precision": 0.9688,
+    "recall": 0.93,
+    "f1": 0.949,
+    "threshold": 0.109378,
+    "n_test_total": 200,
+    "n_test_ok": 100,
+    "n_test_nok": 100,
+    "aupro": "N/A",
+    "aupro_reason": "Model does not produce anomaly maps or dataset has no masks."
+  },
+  "runtime": {
+    "model_only_latency_ms": 146.464,
+    "model_only_latency_std_ms": 0.505,
+    "end_to_end_latency_ms": 155.94,
+    "end_to_end_latency_std_ms": 1.491,
+    "gpu_peak_memory_mb": 12978.89,
+    "fit_time_s": 21.16,
+    "warmup_iterations": 10,
+    "measured_iterations": 30,
+    "device": "cuda",
+    "preprocessing_mode": "high_accuracy",
+    "image_size": 448,
+    "batch_size": 1,
+    "timestamp": "2026-04-22T11:47:47.751634",
+    "config_snapshot": {
+      "backbone": "dinov2_vits14",
+      "n_train": 804,
+      "seed": 1337,
+      "dataset_id": "pcb1"
+    }
+  },
+  "config": {
+    "backbone": "dinov2_vits14",
+    "layers": "[8, 9, 10, 11]",
+    "aggregation": "topk_mean",
+    "topk_ratio": 0.01,
+    "n_train": 804,
+    "preprocessing_mode": "high_accuracy",
+    "image_size": 448,
+    "threshold_strategy": "quantile",
+    "threshold_quantile_p": 0.98
+  }
+}

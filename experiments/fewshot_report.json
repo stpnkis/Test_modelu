@@ -1,0 +1,307 @@
+{
+  "per_dataset": {
+    "bottle": {
+      "full_n_train": 159,
+      "few_shot_levels": [
+        10,
+        25,
+        50,
+        100,
+        159
+      ],
+      "models": {
+        "patchcore": {
+          "10": 1.0,
+          "25": 1.0,
+          "50": 1.0,
+          "100": 1.0,
+          "159": 1.0
+        },
+        "rd_plus_plus": {
+          "10": 0.9992,
+          "25": 0.9976,
+          "50": 1.0,
+          "100": 1.0,
+          "159": 1.0
+        },
+        "simplenet": {
+          "10": 0.9929,
+          "25": 0.9952,
+          "50": 0.9349,
+          "100": 0.996,
+          "159": 1.0
+        },
+        "anomalydino": {
+          "10": 0.9968,
+          "25": 0.9984,
+          "50": 0.9968,
+          "159": 1.0
+        }
+      }
+    },
+    "wood": {
+      "full_n_train": 197,
+      "few_shot_levels": [
+        10,
+        25,
+        50,
+        100,
+        197
+      ],
+      "models": {
+        "patchcore": {
+          "10": 0.9825,
+          "25": 0.9851,
+          "50": 0.9842,
+          "100": 0.9921,
+          "197": 0.993
+        },
+        "rd_plus_plus": {
+          "10": 0.9886,
+          "25": 0.9886,
+          "50": 0.9895,
+          "100": 0.9895,
+          "197": 0.9912
+        },
+        "simplenet": {
+          "10": 0.5509,
+          "25": 0.9877,
+          "50": 0.9877,
+          "100": 0.9886,
+          "197": 0.964
+        },
+        "anomalydino": {
+          "10": 0.9982,
+          "25": 0.9939,
+          "50": 0.9956,
+          "100": 0.9965,
+          "197": 0.9965
+        }
+      }
+    },
+    "pcb1": {
+      "full_n_train": 804,
+      "few_shot_levels": [
+        10,
+        25,
+        50,
+        100,
+        200,
+        804
+      ],
+      "models": {
+        "patchcore": {
+          "10": 0.9512,
+          "25": 0.9876,
+          "50": 0.9903,
+          "100": 0.9957,
+          "200": 0.9954,
+          "804": 0.9976
+        },
+        "rd_plus_plus": {
+          "10": 0.9777,
+          "25": 0.9846,
+          "50": 0.9902,
+          "100": 0.9923,
+          "200": 0.9914,
+          "804": 0.9941
+        },
+        "simplenet": {
+          "10": 0.8036,
+          "25": 0.9427,
+          "50": 0.9923,
+          "100": 0.8821,
+          "200": 0.782,
+          "804": 0.1823
+        },
+        "anomalydino": {
+          "10": 0.9664,
+          "25": 0.9677,
+          "50": 0.9686,
+          "100": 0.9806,
+          "200": 0.9809,
+          "804": 0.9858
+        }
+      }
+    },
+    "casting": {
+      "full_n_train": 365,
+      "few_shot_levels": [
+        10,
+        25,
+        50,
+        100,
+        200,
+        365
+      ],
+      "models": {
+        "patchcore": {
+          "10": 0.7054,
+          "25": 0.7907,
+          "50": 0.9096,
+          "100": 0.9353,
+          "200": 0.99,
+          "365": 0.9983
+        },
+        "rd_plus_plus": {
+          "10": 0.8416,
+          "25": 0.9222,
+          "50": 0.9537,
+          "100": 0.9752,
+          "200": 0.9951,
+          "365": 0.9995
+        },
+        "simplenet": {
+          "10": 0.4795,
+          "25": 0.6638,
+          "50": 0.5855,
+          "100": 0.5219,
+          "200": 0.3507,
+          "365": 0.6675
+        },
+        "anomalydino": {
+          "10": 0.7753,
+          "25": 0.8669,
+          "50": 0.9458,
+          "100": 0.9492,
+          "200": 0.9739,
+          "365": 0.9912
+        }
+      }
+    }
+  },
+  "aggregate": {
+    "10": {
+      "patchcore": {
+        "mean_auroc": 0.9098,
+        "std_auroc": 0.1377,
+        "n_datasets": 4
+      },
+      "rd_plus_plus": {
+        "mean_auroc": 0.9518,
+        "std_auroc": 0.074,
+        "n_datasets": 4
+      },
+      "simplenet": {
+        "mean_auroc": 0.7067,
+        "std_auroc": 0.2361,
+        "n_datasets": 4
+      },
+      "anomalydino": {
+        "mean_auroc": 0.9342,
+        "std_auroc": 0.1069,
+        "n_datasets": 4
+      }
+    },
+    "25": {
+      "patchcore": {
+        "mean_auroc": 0.9408,
+        "std_auroc": 0.1003,
+        "n_datasets": 4
+      },
+      "rd_plus_plus": {
+        "mean_auroc": 0.9733,
+        "std_auroc": 0.0345,
+        "n_datasets": 4
+      },
+      "simplenet": {
+        "mean_auroc": 0.8973,
+        "std_auroc": 0.1574,
+        "n_datasets": 4
+      },
+      "anomalydino": {
+        "mean_auroc": 0.9567,
+        "std_auroc": 0.0614,
+        "n_datasets": 4
+      }
+    },
+    "50": {
+      "patchcore": {
+        "mean_auroc": 0.971,
+        "std_auroc": 0.0415,
+        "n_datasets": 4
+      },
+      "rd_plus_plus": {
+        "mean_auroc": 0.9833,
+        "std_auroc": 0.0203,
+        "n_datasets": 4
+      },
+      "simplenet": {
+        "mean_auroc": 0.8751,
+        "std_auroc": 0.1948,
+        "n_datasets": 4
+      },
+      "anomalydino": {
+        "mean_auroc": 0.9767,
+        "std_auroc": 0.0244,
+        "n_datasets": 4
+      }
+    },
+    "100": {
+      "patchcore": {
+        "mean_auroc": 0.9808,
+        "std_auroc": 0.0305,
+        "n_datasets": 4
+      },
+      "rd_plus_plus": {
+        "mean_auroc": 0.9892,
+        "std_auroc": 0.0104,
+        "n_datasets": 4
+      },
+      "simplenet": {
+        "mean_auroc": 0.8472,
+        "std_auroc": 0.223,
+        "n_datasets": 4
+      },
+      "anomalydino": {
+        "mean_auroc": 0.9754,
+        "std_auroc": 0.0241,
+        "n_datasets": 3
+      }
+    },
+    "200": {
+      "patchcore": {
+        "mean_auroc": 0.9927,
+        "std_auroc": 0.0038,
+        "n_datasets": 2
+      },
+      "rd_plus_plus": {
+        "mean_auroc": 0.9932,
+        "std_auroc": 0.0026,
+        "n_datasets": 2
+      },
+      "simplenet": {
+        "mean_auroc": 0.5664,
+        "std_auroc": 0.305,
+        "n_datasets": 2
+      },
+      "anomalydino": {
+        "mean_auroc": 0.9774,
+        "std_auroc": 0.0049,
+        "n_datasets": 2
+      }
+    },
+    "full": {
+      "patchcore": {
+        "mean_auroc": 0.9972,
+        "std_auroc": 0.003,
+        "n_datasets": 4
+      },
+      "rd_plus_plus": {
+        "mean_auroc": 0.9962,
+        "std_auroc": 0.0043,
+        "n_datasets": 4
+      },
+      "simplenet": {
+        "mean_auroc": 0.7035,
+        "std_auroc": 0.378,
+        "n_datasets": 4
+      },
+      "anomalydino": {
+        "mean_auroc": 0.9934,
+        "std_auroc": 0.0062,
+        "n_datasets": 4
+      }
+    }
+  }
+}

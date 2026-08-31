@@ -138,12 +138,20 @@ def create_split(
     """
     cfg = get_dataset_config(dataset_id)
 
+    # Resolve data_subdir (e.g. datasets/can/can/ for MVTec AD 2)
+    if cfg.data_subdir:
+        dataset_dir = str(Path(dataset_dir) / cfg.data_subdir)
+
     if cfg.split_policy == "official_test":
         return _create_split_official_test(
             dataset_dir, splits_root, dataset_id, n_train, seed, link_mode, cfg
         )
     elif cfg.split_policy == "custom_holdout":
         return _create_split_custom_holdout(
+            dataset_dir, splits_root, dataset_id, n_train, seed, link_mode, cfg
+        )
+    elif cfg.split_policy == "fixed_official":
+        return _create_split_fixed_official(
             dataset_dir, splits_root, dataset_id, n_train, seed, link_mode, cfg
         )
     else:
@@ -423,6 +431,111 @@ def _create_split_custom_holdout(
     )
 
 
+def _create_split_fixed_official(
+    dataset_dir: str | Path,
+    splits_root: str | Path,
+    dataset_id: str,
+    n_train: int,
+    seed: int,
+    link_mode: str,
+    cfg: DatasetConfig,
+) -> Dict[str, Any]:
+    """Split for datasets with fixed official train/val/test (MVTec AD 2).
+
+    The official split is preserved exactly — no reshuffling of val or test.
+    All seeds produce identical test and val sets.  The seed only affects
+    which subset of train images is used when ``n_train < total_train``
+    (few-shot mode).
+
+    Expected directory layout:
+        <dataset_dir>/train/good/              — OK training images
+        <dataset_dir>/validation/good/         — OK validation images
+        <dataset_dir>/test_public/good/        — OK test images
+        <dataset_dir>/test_public/bad/         — NOK test images
+        <dataset_dir>/test_public/ground_truth/bad/ — masks (optional)
+    """
+    dataset_dir = Path(dataset_dir).resolve()
+    splits_root = Path(splits_root)
+
+    if n_train < 1:
+        raise ValueError(f"n_train must be >= 1, got {n_train}.")
+
+    # ── Read from MVTec AD 2 structure ───────────────────────────────
+    train_all = _list_images(dataset_dir / "train" / "good")
+    val_ok = _list_images(dataset_dir / "validation" / "good")
+    test_ok = _list_images(dataset_dir / "test_public" / "good")
+    nok_images = _list_images(dataset_dir / "test_public" / "bad")
+
+    # ── Validate counts against registry ─────────────────────────────
+    if len(train_all) != cfg.official_train_ok:
+        raise ValueError(
+            f"Dataset '{dataset_id}': expected {cfg.official_train_ok} train/good "
+            f"images, found {len(train_all)}."
+        )
+    if len(val_ok) != cfg.val_ok_count:
+        raise ValueError(
+            f"Dataset '{dataset_id}': expected {cfg.val_ok_count} validation/good "
+            f"images, found {len(val_ok)}."
+        )
+    if len(test_ok) != cfg.official_test_ok:
+        raise ValueError(
+            f"Dataset '{dataset_id}': expected {cfg.official_test_ok} test_public/good "
+            f"images, found {len(test_ok)}."
+        )
+    if len(nok_images) != cfg.total_nok:
+        raise ValueError(
+            f"Dataset '{dataset_id}': expected {cfg.total_nok} test_public/bad "
+            f"images, found {len(nok_images)}."
+        )
+
+    # ── Select training subset ───────────────────────────────────────
+    if n_train > len(train_all):
+        raise ValueError(
+            f"Not enough train images for '{dataset_id}': "
+            f"requested {n_train}, have {len(train_all)}."
+        )
+
+    if n_train < len(train_all):
+        rng = random.Random(seed)
+        shuffled = train_all.copy()
+        rng.shuffle(shuffled)
+        train_ok = sorted(shuffled[:n_train])
+    else:
+        train_ok = train_all
+
+    logger.info(
+        "Fixed official split [%s]: train=%d/%d  val=%d  test_ok=%d  test_nok=%d",
+        dataset_id, len(train_ok), len(train_all),
+        len(val_ok), len(test_ok), len(nok_images),
+    )
+
+    # ── Masks: MVTec AD 2 stores them with _mask suffix ──────────────
+    masks_dir = dataset_dir / "test_public" / "ground_truth" / "bad"
+    mask_stem_transform = None
+    if masks_dir.is_dir():
+        def _strip_mask_suffix(stem: str) -> str:
+            if stem.endswith("_mask"):
+                return stem[:-5]
+            return stem
+        mask_stem_transform = _strip_mask_suffix
+
+    return _write_split(
+        dataset_dir=dataset_dir,
+        splits_root=splits_root,
+        dataset_id=dataset_id,
+        n_train=n_train,
+        seed=seed,
+        link_mode=link_mode,
+        train_ok=train_ok,
+        val_ok=val_ok,
+        test_ok=test_ok,
+        nok_images=nok_images,
+        split_policy="fixed_official",
+        masks_dir=masks_dir,
+        mask_stem_transform=mask_stem_transform,
+    )
+
+
 def _write_split(
     *,
     dataset_dir: Path,
@@ -436,8 +549,16 @@ def _write_split(
     test_ok: List[Path],
     nok_images: List[Path],
     split_policy: str,
+    masks_dir: Optional[Path] = None,
+    mask_stem_transform: Optional[Any] = None,
 ) -> Dict[str, Any]:
-    """Build the split directory tree, link files, and write the manifest."""
+    """Build the split directory tree, link files, and write the manifest.
+
+    Args:
+        masks_dir: Override default mask source (dataset_dir/masks).
+        mask_stem_transform: Callable to transform mask stems to match NOK
+            stems (e.g. strip ``_mask`` suffix for MVTec AD 2).
+    """
     split_dir = splits_root / dataset_id / f"seed{seed}" / f"n{n_train}"
     if split_dir.exists():
         shutil.rmtree(split_dir)
@@ -452,7 +573,7 @@ def _write_split(
         d.mkdir(parents=True)
 
     # Masks (optional)
-    masks_src = dataset_dir / "masks"
+    masks_src = masks_dir if masks_dir is not None else dataset_dir / "masks"
     has_masks = masks_src.is_dir() and any(masks_src.iterdir())
     if has_masks:
         test_masks_dir = split_dir / "test" / "masks"
@@ -478,8 +599,13 @@ def _write_split(
     if has_masks:
         nok_stems = {p.stem for p in nok_images}
         for mask_path in sorted(masks_src.iterdir()):
-            if mask_path.is_file() and mask_path.stem in nok_stems:
-                norm_mask = mask_path.stem + mask_path.suffix.lower()
+            if not mask_path.is_file():
+                continue
+            mask_stem = mask_path.stem
+            if mask_stem_transform:
+                mask_stem = mask_stem_transform(mask_stem)
+            if mask_stem in nok_stems:
+                norm_mask = mask_stem + mask_path.suffix.lower()
                 _create_link(mask_path, test_masks_dir / norm_mask, link_mode)
 
     # ── Manifest ─────────────────────────────────────────────────────

@@ -1,0 +1,427 @@
+2026-04-20 22:51:38,484 [INFO] __main__: Mode: fewshot  dataset: wood  n_train: 197  few_shot_levels: [10, 25, 50, 100, 197]
+2026-04-20 22:51:38,485 [INFO] __main__: ======================================================================
+2026-04-20 22:51:38,485 [INFO] __main__:   FEW-SHOT STUDY: dataset=wood  models=['patchcore', 'rd_plus_plus', 'simplenet', 'anomalydino']  levels=[10, 25, 50, 100, 197]
+2026-04-20 22:51:38,485 [INFO] __main__: ======================================================================
+2026-04-20 22:51:38,485 [INFO] benchmark.orchestrator: Few-shot mode: using single seed 42
+2026-04-20 22:51:38,485 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:51:38,485 [INFO] benchmark.orchestrator:   FEW-SHOT STUDY: n_train=10
+2026-04-20 22:51:38,485 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:51:38,485 [INFO] benchmark.orchestrator: Validating dataset: wood
+2026-04-20 22:51:38,491 [INFO] shared.dataset_schema: Dataset validated: wood — {'ok_count': 266, 'nok_count': 60, 'mask_count': 60, 'has_masks': True}
+2026-04-20 22:51:38,491 [INFO] benchmark.orchestrator: Creating split: seed=42  n_train=10
+2026-04-20 22:51:38,494 [INFO] shared.split_manager: Official split [wood]: prefix detection — train_*=247  test_*=19
+2026-04-20 22:51:38,494 [INFO] shared.split_manager: Official test split: 19 OK + 60 NOK (preserved, not reshuffled)
+2026-04-20 22:51:38,502 [INFO] shared.split_manager: Split manifest saved → splits/wood/seed42/n10/manifest.json
+2026-04-20 22:51:38,502 [INFO] shared.split_manager: Split created [official_test]: train=10  val=50  test_ok=19  test_nok=60
+2026-04-20 22:51:38,502 [INFO] benchmark.orchestrator: Run config: experiments_root=experiments  seeds=[42]  n_train=10  preprocessing=baseline  threshold=quantile(p=0.9800)
+2026-04-20 22:51:38,502 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:51:38,502 [INFO] benchmark.orchestrator:   MODEL: patchcore
+2026-04-20 22:51:38,502 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:51:38,502 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:51:38,502 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n10/manifest.json
+2026-04-20 22:51:38,502 [INFO] benchmark.orchestrator: Running: docker compose -f /home/robolab2/stepan_kisler_dp/Test_modelu/models/patchcore/docker-compose.yml run --rm patchcore python src/run_benchmark.py --dataset-id wood --seed 42 --n-train 10 --preprocessing-mode baseline --threshold-strategy quantile --threshold-quantile-p 0.98
+/opt/conda/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+2026-04-20 20:51:41,082 [INFO] __main__: Threshold config: strategy=quantile  quantile_p=0.98
+2026-04-20 20:51:41,083 [INFO] shared.preprocessing: Effective transform pipeline for patchcore:
+  0: Lambda()
+  1: Resize(size=256, interpolation=bilinear, max_size=None, antialias=warn)
+  2: CenterCrop(size=(224, 224))
+  3: ToTensor()
+  4: Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+2026-04-20 20:51:41,084 [INFO] __main__: Split file counts (filesystem): train_ok=10  val_ok=50  test_ok=19  test_nok=60  test_total=79
+2026-04-20 20:51:41,084 [INFO] __main__: Training PatchCore via anomalib ...
+2026-04-20 20:51:41,084 [INFO] __main__: Anomalib Folder: val_split_mode=same_as_test, test_split_mode=from_dir (no random resplit).
+2026-04-20 20:51:41,084 [INFO] anomalib.models.components.base.anomaly_module: Initializing Patchcore model.
+2026-04-20 20:51:41,399 [INFO] timm.models._builder: Loading pretrained weights from Hugging Face hub (timm/resnet50.a1_in1k)
+2026-04-20 20:51:41,589 [INFO] httpx: HTTP Request: HEAD https://huggingface.co/timm/resnet50.a1_in1k/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-04-20 20:51:41,589 [WARNING] huggingface_hub.utils._http: Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-04-20 20:51:41,707 [INFO] httpx: HTTP Request: GET https://huggingface.co/api/models/timm/resnet50.a1_in1k/xet-read-token/767268603ca0cb0bfe326fa87277f19c419566ef "HTTP/1.1 200 OK"
+2026-04-20 20:51:51,324 [INFO] timm.models._hub: [timm/resnet50.a1_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+2026-04-20 20:51:51,335 [INFO] timm.models._builder: Missing keys (fc.weight, fc.bias) discovered while loading pretrained weights. This is expected if model is being adapted.
+2026-04-20 20:51:51,341 [INFO] __main__: PatchCore config: backbone=resnet50 layers=['layer2', 'layer3'] coreset=0.100 neighbors=15
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+You are using a CUDA device ('NVIDIA GeForce RTX 3090') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+2026-04-20 20:51:51,379 [WARNING] anomalib.metrics.f1_score: F1Score class exists for backwards compatibility. It will be removed in v1.1. Please use BinaryF1Score from torchmetrics instead
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+/opt/conda/lib/python3.10/site-packages/lightning/pytorch/core/optimizer.py:183: `LightningModule.configure_optimizers` returned `None`, this fit will run with no optimizer
+┏━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃   ┃ Name                  ┃ Type                    ┃ Params ┃ Mode  ┃ FLOPs ┃
+┡━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ 0 │ model                 │ PatchcoreModel          │  8.5 M │ train │     0 │
+│ 1 │ normalization_metrics │ MetricCollection        │      0 │ train │     0 │
+│ 2 │ image_threshold       │ F1AdaptiveThreshold     │      0 │ train │     0 │
+│ 3 │ pixel_threshold       │ F1AdaptiveThreshold     │      0 │ train │     0 │
+│ 4 │ image_metrics         │ AnomalibMetricCollecti… │      0 │ train │     0 │
+│ 5 │ pixel_metrics         │ AnomalibMetricCollecti… │      0 │ train │     0 │
+└───┴───────────────────────┴─────────────────────────┴────────┴───────┴───────┘
+Trainable params: 8.5 M                                                         
+Non-trainable params: 0                                                         
+Total params: 8.5 M                                                             
+Total estimated model params size (MB): 34                                      
+Modules in train mode: 14                                                       
+Modules in eval mode: 174                                                       
+Total FLOPs: 0                                                                  
+/opt/conda/lib/python3.10/site-packages/lightning/pytorch/loops/fit_loop.py:534: Found 174 module(s) in eval mode at the start of training. This may lead to unexpected behavior during training. If this is intentional, you can ignore this warning.
+/opt/conda/lib/python3.10/site-packages/lightning/pytorch/loops/optimization/automatic.py:134: `training_step` returned `None`. If this was on purpose, ignore this warning...
+2026-04-20 20:51:52,260 [INFO] anomalib.models.image.patchcore.lightning_model: Aggregating the embedding extracted from the training set.
+2026-04-20 20:51:52,261 [INFO] anomalib.models.image.patchcore.lightning_model: Applying core-set subsampling to get the embedding.
+Selecting Coreset Indices.:   0%|          | 0/784 [00:00<?, ?it/s]Selecting Coreset Indices.:  79%|███████▉  | 623/784 [00:00<00:00, 6229.52it/s]Selecting Coreset Indices.: 100%|██████████| 784/784 [00:00<00:00, 6757.43it/s]
+`Trainer.fit` stopped: `max_epochs=1` reached.
+2026-04-20 20:51:53,761 [INFO] anomalib.callbacks.timer: Training took  2.31 seconds
+Epoch 0/0  ━━━━━━━━━━━━━━━━━━ 1/1 0:00:00 • 0:00:00 0.00it/s image_AUROC: 0.500 
+                                                             image_F1Score:     
+                                                             0.863              
+2026-04-20 20:51:53,762 [INFO] __main__: Scoring val/ok for threshold (direct inference, no anomalib DM) ...
+2026-04-20 20:51:53,769 [INFO] __main__: Val dataset: 50 images from splits/wood/seed42/n10/val/ok  (first: train_009.png)
+2026-04-20 20:51:55,063 [INFO] __main__: Val scores: n=50  min=19.706758  max=28.684065  mean=23.250516
+2026-04-20 20:51:55,063 [INFO] shared.thresholding: Threshold (quantile p=0.980): 26.738600  [val_ok n=50, min=19.7068, max=28.6841]
+2026-04-20 20:51:55,063 [INFO] __main__: Scoring test set (direct inference, no anomalib DM) ...
+2026-04-20 20:51:55,064 [INFO] __main__: Test dataset: 19 OK + 60 NOK = 79 total  (first OK: test_000.png, first NOK: color_000.png)
+2026-04-20 20:51:57,094 [INFO] __main__: Test scores: n=79  n_ok=19  n_nok=60
+2026-04-20 20:51:57,098 [INFO] __main__: Metrics: {'auroc': 0.9825, 'average_precision': 0.9945, 'precision': 0.9206, 'recall': 0.9667, 'f1': 0.9431, 'threshold': 26.7386, 'n_test_total': 79, 'n_test_ok': 19, 'n_test_nok': 60, 'aupro': 'N/A', 'aupro_reason': 'Model does not produce anomaly maps or dataset has no masks.', 'n_val_ok_for_threshold': 50, 'anomalib_internal_split_disabled': True}
+2026-04-20 20:51:57,123 [INFO] shared.runtime_profiler: Profiling: warmup=10  measured=30  device=cuda
+2026-04-20 20:51:58,334 [INFO] shared.runtime_profiler: Profile: model_only=2.81 ms  e2e=26.75 ms  gpu_peak=224.6 MB
+2026-04-20 20:51:58,337 [INFO] shared.results_io: Results saved → experiments/wood/patchcore/mode=baseline/n_train=10/seed=42/results.json
+2026-04-20 20:51:58,337 [INFO] shared.results_io: Predictions CSV saved → experiments/wood/patchcore/mode=baseline/n_train=10/seed=42/predictions.csv  (79 rows)
+2026-04-20 20:51:58,337 [INFO] __main__: Done. AUROC=0.9825  F1=0.9431  threshold=26.738600  n_val_ok=50  n_test_ok=19  n_test_nok=60
+2026-04-20 22:51:59,229 [DEBUG] benchmark.orchestrator: Post-run audit OK: patchcore seed=42 -> results.json + predictions.csv present
+2026-04-20 22:51:59,229 [INFO] benchmark.orchestrator: Aggregating patchcore: seeds=[42]  n_train=10  mode=baseline
+2026-04-20 22:51:59,229 [INFO] shared.aggregate: Consistency OK: wood/patchcore mode=baseline n_train=10 seeds=[42]
+2026-04-20 22:51:59,229 [INFO] shared.aggregate: Summary saved → experiments/wood/patchcore/mode=baseline/n_train=10/summary.json
+2026-04-20 22:51:59,229 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:51:59,229 [INFO] benchmark.orchestrator:   MODEL: rd_plus_plus
+2026-04-20 22:51:59,229 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:51:59,229 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:51:59,229 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n10/manifest.json
+2026-04-20 22:51:59,230 [INFO] benchmark.orchestrator: Running: docker compose -f /home/robolab2/stepan_kisler_dp/Test_modelu/models/rd_plus_plus/docker-compose.yml run --rm rd_plus_plus python src/run_benchmark.py --dataset-id wood --seed 42 --n-train 10 --preprocessing-mode baseline --threshold-strategy quantile --threshold-quantile-p 0.98
+2026-04-20 20:52:00,813 [INFO] __main__: Threshold config: strategy=quantile  quantile_p=0.98
+2026-04-20 20:52:00,813 [INFO] shared.preprocessing: Effective transform pipeline for rd_plus_plus:
+  0: Lambda()
+  1: Resize(size=256, interpolation=bilinear, max_size=None, antialias=warn)
+  2: CenterCrop(size=(224, 224))
+  3: ToTensor()
+  4: Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+2026-04-20 20:52:00,813 [INFO] __main__: Training RD++ ...
+2026-04-20 20:52:00,814 [INFO] train: Training RD++  |  split=splits/wood/seed42/n10  device=cuda
+2026-04-20 20:52:00,814 [INFO] train: Training images: 10
+Downloading: "https://download.pytorch.org/models/wide_resnet50_2-95faca4d.pth" to /tmp/.cache/torch/hub/checkpoints/wide_resnet50_2-95faca4d.pth
+  0%|          | 0.00/132M [00:00<?, ?B/s]  1%|          | 1.11M/132M [00:00<00:11, 11.5MB/s]  2%|▏         | 2.23M/132M [00:00<00:11, 11.6MB/s]  3%|▎         | 3.35M/132M [00:00<00:11, 11.7MB/s]  3%|▎         | 4.48M/132M [00:00<00:11, 11.7MB/s]  4%|▍         | 5.61M/132M [00:00<00:11, 11.7MB/s]  5%|▌         | 6.74M/132M [00:00<00:11, 11.7MB/s]  6%|▌         | 7.87M/132M [00:00<00:11, 11.7MB/s]  7%|▋         | 8.99M/132M [00:00<00:10, 11.7MB/s]  8%|▊         | 10.1M/132M [00:00<00:10, 11.7MB/s]  9%|▊         | 11.2M/132M [00:01<00:10, 11.7MB/s]  9%|▉         | 12.4M/132M [00:01<00:10, 11.7MB/s] 10%|█         | 13.5M/132M [00:01<00:10, 11.7MB/s] 11%|█         | 14.6M/132M [00:01<00:10, 11.7MB/s] 12%|█▏        | 15.8M/132M [00:01<00:10, 11.7MB/s] 13%|█▎        | 16.9M/132M [00:01<00:10, 11.7MB/s] 14%|█▎        | 18.0M/132M [00:01<00:10, 11.7MB/s] 15%|█▍        | 19.1M/132M [00:01<00:10, 11.7MB/s] 15%|█▌        | 20.3M/132M [00:01<00:09, 11.7MB/s] 16%|█▌        | 21.4M/132M [00:01<00:09, 11.7MB/s] 17%|█▋        | 22.5M/132M [00:02<00:09, 11.7MB/s] 18%|█▊        | 23.6M/132M [00:02<00:09, 11.7MB/s] 19%|█▉        | 24.8M/132M [00:02<00:09, 11.7MB/s] 20%|█▉        | 25.9M/132M [00:02<00:09, 11.7MB/s] 20%|██        | 27.0M/132M [00:02<00:09, 11.7MB/s] 21%|██▏       | 28.1M/132M [00:02<00:09, 11.7MB/s] 22%|██▏       | 29.3M/132M [00:02<00:09, 11.7MB/s] 23%|██▎       | 30.4M/132M [00:02<00:09, 11.7MB/s] 24%|██▍       | 31.5M/132M [00:02<00:08, 11.7MB/s] 25%|██▍       | 32.6M/132M [00:02<00:08, 11.7MB/s] 26%|██▌       | 33.8M/132M [00:03<00:08, 11.7MB/s] 26%|██▋       | 34.9M/132M [00:03<00:08, 11.7MB/s] 27%|██▋       | 36.0M/132M [00:03<00:08, 11.7MB/s] 28%|██▊       | 37.1M/132M [00:03<00:08, 11.7MB/s] 29%|██▉       | 38.3M/132M [00:03<00:08, 11.7MB/s] 30%|██▉       | 39.4M/132M [00:03<00:08, 11.7MB/s] 31%|███       | 40.5M/132M [00:03<00:08, 11.8MB/s] 32%|███▏      | 41.6M/132M [00:03<00:08, 11.7MB/s] 32%|███▏      | 42.8M/132M [00:03<00:07, 11.7MB/s] 33%|███▎      | 43.9M/132M [00:03<00:07, 11.7MB/s] 34%|███▍      | 45.0M/132M [00:04<00:07, 11.7MB/s] 35%|███▌      | 46.2M/132M [00:04<00:07, 11.7MB/s] 36%|███▌      | 47.3M/132M [00:04<00:07, 11.7MB/s] 37%|███▋      | 48.4M/132M [00:04<00:07, 11.7MB/s] 38%|███▊      | 49.5M/132M [00:04<00:07, 11.7MB/s] 38%|███▊      | 50.7M/132M [00:04<00:07, 11.7MB/s] 39%|███▉      | 51.8M/132M [00:04<00:07, 11.7MB/s] 40%|████      | 52.9M/132M [00:04<00:07, 11.7MB/s] 41%|████      | 54.0M/132M [00:04<00:06, 11.7MB/s] 42%|████▏     | 55.2M/132M [00:04<00:06, 11.7MB/s] 43%|████▎     | 56.3M/132M [00:05<00:06, 11.7MB/s] 44%|████▎     | 57.4M/132M [00:05<00:06, 11.7MB/s] 44%|████▍     | 58.5M/132M [00:05<00:06, 11.7MB/s] 45%|████▌     | 59.7M/132M [00:05<00:06, 11.7MB/s] 46%|████▌     | 60.8M/132M [00:05<00:06, 11.7MB/s] 47%|████▋     | 61.9M/132M [00:05<00:06, 11.7MB/s] 48%|████▊     | 63.1M/132M [00:05<00:06, 11.7MB/s] 49%|████▊     | 64.2M/132M [00:05<00:06, 11.7MB/s] 50%|████▉     | 65.3M/132M [00:05<00:05, 11.7MB/s] 50%|█████     | 66.4M/132M [00:05<00:05, 11.7MB/s] 51%|█████▏    | 67.6M/132M [00:06<00:05, 11.7MB/s] 52%|█████▏    | 68.7M/132M [00:06<00:05, 11.7MB/s] 53%|█████▎    | 69.8M/132M [00:06<00:05, 11.7MB/s] 54%|█████▍    | 70.9M/132M [00:06<00:05, 11.7MB/s] 55%|█████▍    | 72.1M/132M [00:06<00:05, 11.7MB/s] 56%|█████▌    | 73.2M/132M [00:06<00:05, 11.7MB/s] 56%|█████▋    | 74.3M/132M [00:06<00:05, 11.7MB/s] 57%|█████▋    | 75.4M/132M [00:06<00:05, 11.7MB/s] 58%|█████▊    | 76.6M/132M [00:06<00:04, 11.7MB/s] 59%|█████▉    | 77.7M/132M [00:06<00:04, 11.7MB/s] 60%|█████▉    | 78.8M/132M [00:07<00:04, 11.7MB/s] 61%|██████    | 79.9M/132M [00:07<00:04, 11.7MB/s] 62%|██████▏   | 81.1M/132M [00:07<00:04, 11.7MB/s] 62%|██████▏   | 82.2M/132M [00:07<00:04, 11.7MB/s] 63%|██████▎   | 83.3M/132M [00:07<00:04, 11.7MB/s] 64%|██████▍   | 84.5M/132M [00:07<00:04, 11.7MB/s] 65%|██████▍   | 85.6M/132M [00:07<00:04, 11.7MB/s] 66%|██████▌   | 86.7M/132M [00:07<00:04, 11.7MB/s] 67%|██████▋   | 87.8M/132M [00:07<00:03, 11.7MB/s] 67%|██████▋   | 89.0M/132M [00:07<00:03, 11.7MB/s] 68%|██████▊   | 90.1M/132M [00:08<00:03, 11.7MB/s] 69%|██████▉   | 91.2M/132M [00:08<00:03, 11.7MB/s] 70%|███████   | 92.3M/132M [00:08<00:03, 11.7MB/s] 71%|███████   | 93.5M/132M [00:08<00:03, 11.7MB/s] 72%|███████▏  | 94.6M/132M [00:08<00:03, 11.7MB/s] 73%|███████▎  | 95.7M/132M [00:08<00:03, 11.7MB/s] 73%|███████▎  | 96.8M/132M [00:08<00:03, 11.7MB/s] 74%|███████▍  | 98.0M/132M [00:08<00:03, 11.7MB/s] 75%|███████▌  | 99.1M/132M [00:08<00:02, 11.7MB/s] 76%|███████▌  | 100M/132M [00:08<00:02, 11.7MB/s]  77%|███████▋  | 101M/132M [00:09<00:02, 11.7MB/s] 78%|███████▊  | 102M/132M [00:09<00:02, 11.7MB/s] 79%|███████▊  | 104M/132M [00:09<00:02, 11.7MB/s] 79%|███████▉  | 105M/132M [00:09<00:02, 11.7MB/s] 80%|████████  | 106M/132M [00:09<00:02, 11.7MB/s] 81%|████████  | 107M/132M [00:09<00:02, 11.7MB/s] 82%|████████▏ | 108M/132M [00:09<00:02, 11.7MB/s] 83%|████████▎ | 109M/132M [00:09<00:02, 11.7MB/s] 84%|████████▎ | 110M/132M [00:09<00:01, 11.7MB/s] 85%|████████▍ | 111M/132M [00:09<00:01, 11.7MB/s] 85%|████████▌ | 113M/132M [00:10<00:02, 7.45MB/s] 86%|████████▋ | 114M/132M [00:10<00:02, 8.34MB/s] 87%|████████▋ | 115M/132M [00:10<00:01, 9.16MB/s] 88%|████████▊ | 116M/132M [00:10<00:01, 9.79MB/s] 89%|████████▉ | 117M/132M [00:10<00:01, 10.3MB/s] 90%|████████▉ | 118M/132M [00:10<00:01, 10.7MB/s] 91%|█████████ | 119M/132M [00:10<00:01, 11.0MB/s] 91%|█████████▏| 120M/132M [00:10<00:01, 11.2MB/s] 92%|█████████▏| 122M/132M [00:11<00:00, 11.4MB/s] 93%|█████████▎| 123M/132M [00:11<00:00, 11.5MB/s] 94%|█████████▍| 124M/132M [00:11<00:00, 11.5MB/s] 95%|█████████▍| 125M/132M [00:11<00:00, 11.6MB/s] 96%|█████████▌| 126M/132M [00:11<00:00, 11.6MB/s] 97%|█████████▋| 127M/132M [00:11<00:00, 11.7MB/s] 97%|█████████▋| 128M/132M [00:11<00:00, 11.7MB/s] 98%|█████████▊| 130M/132M [00:11<00:00, 11.7MB/s] 99%|█████████▉| 131M/132M [00:11<00:00, 11.7MB/s]100%|█████████▉| 132M/132M [00:11<00:00, 11.7MB/s]100%|██████████| 132M/132M [00:11<00:00, 11.5MB/s]
+2026-04-20 20:52:14,181 [INFO] train: Trainable parameters: 99,289,536
+2026-04-20 20:52:14,181 [INFO] train: Training: max 200 epochs, patience=30, batch=16, accum=2, proj_lr=0.001, distill_lr=0.005, weight_proj=0.2
+2026-04-20 20:52:15,482 [INFO] train:   Epoch   1/200  L_total=1.8367  L_dist=1.8363  L_proj=0.0021  best=1.8367  patience=0/30
+2026-04-20 20:52:25,835 [INFO] train:   Epoch  10/200  L_total=0.8299  L_dist=0.8297  L_proj=0.0006  best=0.8299  patience=0/30
+2026-04-20 20:52:36,996 [INFO] train:   Epoch  20/200  L_total=0.6657  L_dist=0.6655  L_proj=0.0006  best=0.6657  patience=0/30
+2026-04-20 20:52:48,230 [INFO] train:   Epoch  30/200  L_total=0.5798  L_dist=0.5796  L_proj=0.0006  best=0.5798  patience=0/30
+2026-04-20 20:53:05,905 [INFO] train:   Epoch  40/200  L_total=0.5135  L_dist=0.5134  L_proj=0.0005  best=0.5135  patience=0/30
+2026-04-20 20:53:17,124 [INFO] train:   Epoch  50/200  L_total=0.4708  L_dist=0.4707  L_proj=0.0005  best=0.4708  patience=0/30
+2026-04-20 20:53:27,938 [INFO] train:   Epoch  60/200  L_total=0.4270  L_dist=0.4269  L_proj=0.0006  best=0.4270  patience=0/30
+2026-04-20 20:53:37,744 [INFO] train:   Epoch  70/200  L_total=0.3910  L_dist=0.3909  L_proj=0.0005  best=0.3910  patience=0/30
+2026-04-20 20:53:53,847 [INFO] train:   Epoch  80/200  L_total=0.3628  L_dist=0.3627  L_proj=0.0006  best=0.3628  patience=0/30
+2026-04-20 20:54:04,079 [INFO] train:   Epoch  90/200  L_total=0.3411  L_dist=0.3410  L_proj=0.0005  best=0.3298  patience=1/30
+2026-04-20 20:54:19,499 [INFO] train:   Epoch 100/200  L_total=0.3172  L_dist=0.3171  L_proj=0.0005  best=0.3144  patience=2/30
+2026-04-20 20:54:28,283 [INFO] train:   Epoch 110/200  L_total=0.2928  L_dist=0.2927  L_proj=0.0005  best=0.2928  patience=0/30
+2026-04-20 20:54:37,516 [INFO] train:   Epoch 120/200  L_total=0.2695  L_dist=0.2694  L_proj=0.0005  best=0.2695  patience=0/30
+2026-04-20 20:54:45,898 [INFO] train:   Epoch 130/200  L_total=0.2565  L_dist=0.2564  L_proj=0.0005  best=0.2565  patience=0/30
+2026-04-20 20:54:53,777 [INFO] train:   Epoch 140/200  L_total=0.2537  L_dist=0.2536  L_proj=0.0004  best=0.2497  patience=3/30
+2026-04-20 20:55:05,395 [INFO] train:   Epoch 150/200  L_total=0.2359  L_dist=0.2358  L_proj=0.0004  best=0.2325  patience=4/30
+2026-04-20 20:55:13,714 [INFO] train:   Epoch 160/200  L_total=0.2210  L_dist=0.2209  L_proj=0.0004  best=0.2210  patience=0/30
+2026-04-20 20:55:22,588 [INFO] train:   Epoch 170/200  L_total=0.2097  L_dist=0.2096  L_proj=0.0004  best=0.2085  patience=1/30
+2026-04-20 20:55:31,395 [INFO] train:   Epoch 180/200  L_total=0.1991  L_dist=0.1991  L_proj=0.0004  best=0.1974  patience=1/30
+2026-04-20 20:55:47,174 [INFO] train:   Epoch 190/200  L_total=0.1835  L_dist=0.1834  L_proj=0.0004  best=0.1818  patience=1/30
+2026-04-20 20:55:54,670 [INFO] train:   Epoch 200/200  L_total=0.1768  L_dist=0.1767  L_proj=0.0004  best=0.1768  patience=0/30
+2026-04-20 20:55:54,670 [INFO] train: Best checkpoint: experiments/wood/rd_plus_plus/mode=baseline/n_train=10/seed=42/model_best.pth  (epoch 200, loss=0.1768)
+2026-04-20 20:55:55,961 [INFO] __main__: Scoring val/ok for threshold ...
+2026-04-20 20:55:57,694 [INFO] __main__: Val scores: n=50  min=0.619789  max=0.906914  mean=0.741198
+2026-04-20 20:55:57,694 [INFO] shared.thresholding: Threshold (quantile p=0.980): 0.895461  [val_ok n=50, min=0.6198, max=0.9069]
+2026-04-20 20:55:57,694 [INFO] __main__: Scoring test set ...
+2026-04-20 20:56:05,354 [INFO] __main__: Metrics: {'auroc': 0.9886, 'average_precision': 0.9966, 'precision': 0.95, 'recall': 0.95, 'f1': 0.95, 'threshold': 0.895461, 'n_test_total': 79, 'n_test_ok': 19, 'n_test_nok': 60, 'n_val_ok_for_threshold': 50, 'aupro': 0.8697, 'aupro_fpr_limit': 0.3}
+2026-04-20 20:56:05,380 [INFO] shared.runtime_profiler: Profiling: warmup=10  measured=30  device=cuda
+2026-04-20 20:56:06,964 [INFO] shared.runtime_profiler: Profile: model_only=6.60 ms  e2e=32.85 ms  gpu_peak=1024.2 MB
+2026-04-20 20:56:06,965 [INFO] shared.results_io: Results saved → experiments/wood/rd_plus_plus/mode=baseline/n_train=10/seed=42/results.json
+2026-04-20 20:56:06,966 [INFO] shared.results_io: Predictions CSV saved → experiments/wood/rd_plus_plus/mode=baseline/n_train=10/seed=42/predictions.csv  (79 rows)
+2026-04-20 20:56:06,966 [INFO] __main__: Done. AUROC=0.9886  F1=0.9500
+2026-04-20 22:56:07,556 [DEBUG] benchmark.orchestrator: Post-run audit OK: rd_plus_plus seed=42 -> results.json + predictions.csv present
+2026-04-20 22:56:07,556 [INFO] benchmark.orchestrator: Aggregating rd_plus_plus: seeds=[42]  n_train=10  mode=baseline
+2026-04-20 22:56:07,556 [INFO] shared.aggregate: Consistency OK: wood/rd_plus_plus mode=baseline n_train=10 seeds=[42]
+2026-04-20 22:56:07,556 [INFO] shared.aggregate: Summary saved → experiments/wood/rd_plus_plus/mode=baseline/n_train=10/summary.json
+2026-04-20 22:56:07,556 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:07,556 [INFO] benchmark.orchestrator:   MODEL: simplenet
+2026-04-20 22:56:07,556 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:07,556 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:07,557 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n10/manifest.json
+2026-04-20 22:56:07,557 [INFO] benchmark.orchestrator: Running: docker compose -f /home/robolab2/stepan_kisler_dp/Test_modelu/models/simplenet/docker-compose.yml run --rm simplenet python src/run_benchmark.py --dataset-id wood --seed 42 --n-train 10 --preprocessing-mode baseline --threshold-strategy quantile --threshold-quantile-p 0.98
+2026-04-20 20:56:09,162 [INFO] __main__: Threshold config: strategy=quantile  quantile_p=0.98
+2026-04-20 20:56:09,163 [INFO] shared.preprocessing: Effective transform pipeline for simplenet:
+  0: Lambda()
+  1: Resize(size=256, interpolation=bilinear, max_size=None, antialias=warn)
+  2: CenterCrop(size=(224, 224))
+  3: ToTensor()
+  4: Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+2026-04-20 20:56:09,163 [INFO] __main__: Training SimpleNet ...
+2026-04-20 20:56:09,163 [WARNING] __main__: SimpleNet benchmark: n_train=10 is below the recommended minimum of 50. Results may be less reliable with very few training images.
+2026-04-20 20:56:09,163 [INFO] train: Training SimpleNet  |  split=splits/wood/seed42/n10  backbone=wide_resnet50_2  device=cuda
+2026-04-20 20:56:09,163 [INFO] train: Training images: 10
+Downloading: "https://download.pytorch.org/models/wide_resnet50_2-95faca4d.pth" to /tmp/.cache/torch/hub/checkpoints/wide_resnet50_2-95faca4d.pth
+  0%|          | 0.00/132M [00:00<?, ?B/s]  1%|          | 1.10M/132M [00:00<00:11, 11.5MB/s]  2%|▏         | 2.23M/132M [00:00<00:11, 11.6MB/s]  3%|▎         | 3.36M/132M [00:00<00:11, 11.7MB/s]  3%|▎         | 4.48M/132M [00:00<00:11, 11.7MB/s]  4%|▍         | 5.59M/132M [00:00<00:11, 11.7MB/s]  5%|▌         | 6.72M/132M [00:00<00:11, 11.7MB/s]  6%|▌         | 7.84M/132M [00:00<00:11, 11.7MB/s]  7%|▋         | 8.95M/132M [00:00<00:11, 11.7MB/s]  8%|▊         | 10.1M/132M [00:00<00:10, 11.7MB/s]  8%|▊         | 11.2M/132M [00:01<00:10, 11.7MB/s]  9%|▉         | 12.3M/132M [00:01<00:10, 11.7MB/s] 10%|█         | 13.5M/132M [00:01<00:10, 11.7MB/s] 11%|█         | 14.6M/132M [00:01<00:10, 11.7MB/s] 12%|█▏        | 15.7M/132M [00:01<00:10, 11.7MB/s] 13%|█▎        | 16.8M/132M [00:01<00:10, 11.7MB/s] 14%|█▎        | 18.0M/132M [00:01<00:10, 11.7MB/s] 14%|█▍        | 19.1M/132M [00:01<00:10, 11.7MB/s] 15%|█▌        | 20.2M/132M [00:01<00:09, 11.7MB/s] 16%|█▌        | 21.3M/132M [00:01<00:09, 11.7MB/s] 17%|█▋        | 22.5M/132M [00:02<00:09, 11.7MB/s] 18%|█▊        | 23.6M/132M [00:02<00:09, 11.7MB/s] 19%|█▉        | 24.7M/132M [00:02<00:09, 11.7MB/s] 20%|█▉        | 25.8M/132M [00:02<00:09, 11.7MB/s] 20%|██        | 27.0M/132M [00:02<00:09, 11.7MB/s] 21%|██▏       | 28.1M/132M [00:02<00:09, 11.7MB/s] 22%|██▏       | 29.2M/132M [00:02<00:09, 11.7MB/s] 23%|██▎       | 30.4M/132M [00:02<00:09, 11.7MB/s] 24%|██▍       | 31.5M/132M [00:02<00:08, 11.7MB/s] 25%|██▍       | 32.6M/132M [00:02<00:08, 11.7MB/s] 26%|██▌       | 33.7M/132M [00:03<00:08, 11.7MB/s] 26%|██▋       | 34.9M/132M [00:03<00:08, 11.7MB/s] 27%|██▋       | 36.0M/132M [00:03<00:08, 11.7MB/s] 28%|██▊       | 37.1M/132M [00:03<00:08, 11.7MB/s] 29%|██▉       | 38.2M/132M [00:03<00:08, 11.7MB/s] 30%|██▉       | 39.4M/132M [00:03<00:08, 11.7MB/s] 31%|███       | 40.5M/132M [00:03<00:08, 11.7MB/s] 32%|███▏      | 41.6M/132M [00:03<00:08, 11.7MB/s] 32%|███▏      | 42.8M/132M [00:03<00:07, 11.8MB/s] 33%|███▎      | 43.9M/132M [00:03<00:07, 11.7MB/s] 34%|███▍      | 45.0M/132M [00:04<00:07, 11.7MB/s] 35%|███▍      | 46.1M/132M [00:04<00:07, 11.7MB/s] 36%|███▌      | 47.3M/132M [00:04<00:07, 11.7MB/s] 37%|███▋      | 48.4M/132M [00:04<00:07, 11.7MB/s] 38%|███▊      | 49.5M/132M [00:04<00:07, 11.7MB/s] 38%|███▊      | 50.6M/132M [00:04<00:07, 11.7MB/s] 39%|███▉      | 51.8M/132M [00:04<00:07, 11.7MB/s] 40%|████      | 52.9M/132M [00:04<00:07, 11.7MB/s] 41%|████      | 54.0M/132M [00:04<00:06, 11.7MB/s] 42%|████▏     | 55.1M/132M [00:04<00:06, 11.7MB/s] 43%|████▎     | 56.3M/132M [00:05<00:06, 11.7MB/s] 44%|████▎     | 57.4M/132M [00:05<00:06, 11.7MB/s] 44%|████▍     | 58.5M/132M [00:05<00:06, 11.7MB/s] 45%|████▌     | 59.6M/132M [00:05<00:06, 11.7MB/s] 46%|████▌     | 60.8M/132M [00:05<00:06, 11.7MB/s] 47%|████▋     | 61.9M/132M [00:05<00:06, 11.8MB/s] 48%|████▊     | 63.0M/132M [00:05<00:06, 11.7MB/s] 49%|████▊     | 64.1M/132M [00:05<00:06, 11.7MB/s] 49%|████▉     | 65.2M/132M [00:05<00:05, 11.7MB/s] 50%|█████     | 66.4M/132M [00:05<00:05, 11.7MB/s] 51%|█████     | 67.5M/132M [00:06<00:05, 11.7MB/s] 52%|█████▏    | 68.6M/132M [00:06<00:05, 11.7MB/s] 53%|█████▎    | 69.8M/132M [00:06<00:05, 11.7MB/s] 54%|█████▍    | 70.9M/132M [00:06<00:05, 11.8MB/s] 55%|█████▍    | 72.0M/132M [00:06<00:05, 11.7MB/s] 55%|█████▌    | 73.1M/132M [00:06<00:05, 11.7MB/s] 56%|█████▋    | 74.2M/132M [00:06<00:05, 11.7MB/s] 57%|█████▋    | 75.4M/132M [00:06<00:05, 11.7MB/s] 58%|█████▊    | 76.5M/132M [00:06<00:04, 11.7MB/s] 59%|█████▉    | 77.6M/132M [00:06<00:04, 11.7MB/s] 60%|█████▉    | 78.8M/132M [00:07<00:04, 11.7MB/s] 61%|██████    | 79.9M/132M [00:07<00:04, 11.7MB/s] 61%|██████▏   | 81.0M/132M [00:07<00:04, 11.7MB/s] 62%|██████▏   | 82.1M/132M [00:07<00:04, 11.7MB/s] 63%|██████▎   | 83.3M/132M [00:07<00:04, 11.7MB/s] 64%|██████▍   | 84.4M/132M [00:07<00:04, 11.7MB/s] 65%|██████▍   | 85.5M/132M [00:07<00:04, 11.7MB/s] 66%|██████▌   | 86.6M/132M [00:07<00:04, 11.7MB/s] 67%|██████▋   | 87.8M/132M [00:07<00:03, 11.7MB/s] 67%|██████▋   | 88.9M/132M [00:07<00:03, 11.7MB/s] 68%|██████▊   | 90.0M/132M [00:08<00:03, 11.7MB/s] 69%|██████▉   | 91.1M/132M [00:08<00:03, 11.7MB/s] 70%|██████▉   | 92.3M/132M [00:08<00:03, 11.7MB/s] 71%|███████   | 93.4M/132M [00:08<00:03, 11.7MB/s] 72%|███████▏  | 94.5M/132M [00:08<00:03, 11.7MB/s] 73%|███████▎  | 95.7M/132M [00:08<00:03, 11.7MB/s] 73%|███████▎  | 96.8M/132M [00:08<00:03, 11.7MB/s] 74%|███████▍  | 97.9M/132M [00:08<00:03, 11.7MB/s] 75%|███████▌  | 99.0M/132M [00:08<00:02, 11.7MB/s] 76%|███████▌  | 100M/132M [00:08<00:02, 11.7MB/s]  77%|███████▋  | 101M/132M [00:09<00:02, 11.7MB/s] 78%|███████▊  | 102M/132M [00:09<00:02, 11.7MB/s] 79%|███████▊  | 104M/132M [00:09<00:02, 11.7MB/s] 79%|███████▉  | 105M/132M [00:09<00:02, 11.7MB/s] 80%|████████  | 106M/132M [00:09<00:02, 11.7MB/s] 81%|████████  | 107M/132M [00:09<00:02, 11.7MB/s] 82%|████████▏ | 108M/132M [00:09<00:02, 11.7MB/s] 83%|████████▎ | 109M/132M [00:09<00:02, 11.7MB/s] 84%|████████▎ | 110M/132M [00:09<00:01, 11.7MB/s] 85%|████████▍ | 111M/132M [00:09<00:01, 11.7MB/s] 85%|████████▌ | 113M/132M [00:10<00:02, 7.47MB/s] 86%|████████▌ | 114M/132M [00:10<00:02, 8.39MB/s] 87%|████████▋ | 115M/132M [00:10<00:01, 9.17MB/s] 88%|████████▊ | 116M/132M [00:10<00:01, 9.81MB/s] 89%|████████▉ | 117M/132M [00:10<00:01, 10.3MB/s] 90%|████████▉ | 118M/132M [00:10<00:01, 10.7MB/s] 90%|█████████ | 119M/132M [00:10<00:01, 11.0MB/s] 91%|█████████▏| 120M/132M [00:10<00:01, 11.2MB/s] 92%|█████████▏| 122M/132M [00:11<00:00, 11.4MB/s] 93%|█████████▎| 123M/132M [00:11<00:00, 11.5MB/s] 94%|█████████▍| 124M/132M [00:11<00:00, 11.5MB/s] 95%|█████████▍| 125M/132M [00:11<00:00, 11.6MB/s] 96%|█████████▌| 126M/132M [00:11<00:00, 11.6MB/s] 96%|█████████▋| 127M/132M [00:11<00:00, 11.7MB/s] 97%|█████████▋| 128M/132M [00:11<00:00, 11.7MB/s] 98%|█████████▊| 129M/132M [00:11<00:00, 11.7MB/s] 99%|█████████▉| 131M/132M [00:11<00:00, 11.7MB/s]100%|█████████▉| 132M/132M [00:11<00:00, 11.7MB/s]100%|██████████| 132M/132M [00:11<00:00, 11.5MB/s]
+2026-04-20 20:56:22,397 [INFO] train:   Base pass: 7,840 patches (dim=1536)
+2026-04-20 20:56:22,403 [INFO] train: Feature bank: 7,840 patches, dim=1536, spatial=(28×28)
+2026-04-20 20:56:22,411 [INFO] train: Trainable parameters: 1,183,745
+2026-04-20 20:56:22,412 [INFO] train: Noise std: 0.0150
+2026-04-20 20:56:22,412 [INFO] train: Training: max 200 epochs, early stopping patience=30, patch_batch=256, weight_decay=1e-05
+2026-04-20 20:56:22,573 [INFO] train:   Epoch   1/200  loss_d=1.3979  loss_a=0.6760  total=2.0739  best=2.0739  lr_a=2.00e-04  lr_d=1.00e-04  patience=0/30
+2026-04-20 20:56:23,234 [INFO] train:   Epoch  10/200  loss_d=1.3861  loss_a=0.6924  total=2.0785  best=2.0560  lr_a=1.99e-04  lr_d=9.94e-05  patience=8/30
+2026-04-20 20:56:23,954 [INFO] train:   Epoch  20/200  loss_d=1.3842  loss_a=0.6901  total=2.0743  best=2.0560  lr_a=1.95e-04  lr_d=9.76e-05  patience=18/30
+2026-04-20 20:56:24,765 [INFO] train:   Epoch  30/200  loss_d=1.3839  loss_a=0.6956  total=2.0795  best=2.0560  lr_a=1.89e-04  lr_d=9.46e-05  patience=28/30
+2026-04-20 20:56:24,908 [INFO] train:   Early stopping at epoch 32 (best epoch: 2, best loss: 2.0560)
+2026-04-20 20:56:24,914 [INFO] train: Best checkpoint: experiments/wood/simplenet/42/model_best.pth  (epoch 2, loss=2.0560)
+2026-04-20 20:56:24,914 [INFO] train: Last checkpoint: experiments/wood/simplenet/42/model.pth
+2026-04-20 20:56:25,453 [INFO] __main__: Scoring val/ok for threshold ...
+2026-04-20 20:56:26,922 [INFO] shared.thresholding: Threshold (quantile p=0.980): 0.618356  [val_ok n=50, min=0.5645, max=0.6330]
+2026-04-20 20:56:26,922 [INFO] __main__: Scoring test set ...
+2026-04-20 20:56:29,232 [INFO] __main__: Metrics: {'auroc': 0.5509, 'average_precision': 0.8334, 'precision': 1.0, 'recall': 0.0667, 'f1': 0.125, 'threshold': 0.618356, 'n_test_total': 79, 'n_test_ok': 19, 'n_test_nok': 60, 'aupro': 'N/A', 'aupro_reason': 'Model does not produce anomaly maps or dataset has no masks.'}
+2026-04-20 20:56:29,261 [INFO] shared.runtime_profiler: Profiling: warmup=10  measured=30  device=cuda
+2026-04-20 20:56:30,552 [INFO] shared.runtime_profiler: Profile: model_only=3.57 ms  e2e=28.48 ms  gpu_peak=426.9 MB
+2026-04-20 20:56:30,554 [INFO] shared.results_io: Results saved → experiments/wood/simplenet/mode=baseline/n_train=10/seed=42/results.json
+2026-04-20 20:56:30,554 [INFO] shared.results_io: Predictions CSV saved → experiments/wood/simplenet/mode=baseline/n_train=10/seed=42/predictions.csv  (79 rows)
+2026-04-20 20:56:30,554 [INFO] __main__: Done. AUROC=0.5509  F1=0.1250
+2026-04-20 22:56:31,113 [DEBUG] benchmark.orchestrator: Post-run audit OK: simplenet seed=42 -> results.json + predictions.csv present
+2026-04-20 22:56:31,113 [INFO] benchmark.orchestrator: Aggregating simplenet: seeds=[42]  n_train=10  mode=baseline
+2026-04-20 22:56:31,114 [INFO] shared.aggregate: Consistency OK: wood/simplenet mode=baseline n_train=10 seeds=[42]
+2026-04-20 22:56:31,114 [INFO] shared.aggregate: Summary saved → experiments/wood/simplenet/mode=baseline/n_train=10/summary.json
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator:   MODEL: anomalydino
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,114 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n10/manifest.json
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator:   SKIP: anomalydino seed=42 n_train=10 — results already exist at experiments/wood/anomalydino/mode=baseline/n_train=10/seed=42
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator: Aggregating anomalydino: seeds=[42]  n_train=10  mode=baseline
+2026-04-20 22:56:31,114 [INFO] shared.aggregate: Consistency OK: wood/anomalydino mode=baseline n_train=10 seeds=[42]
+2026-04-20 22:56:31,114 [INFO] shared.aggregate: Summary saved → experiments/wood/anomalydino/mode=baseline/n_train=10/summary.json
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator:   FEW-SHOT STUDY: n_train=25
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:56:31,114 [INFO] benchmark.orchestrator: Validating dataset: wood
+2026-04-20 22:56:31,119 [INFO] shared.dataset_schema: Dataset validated: wood — {'ok_count': 266, 'nok_count': 60, 'mask_count': 60, 'has_masks': True}
+2026-04-20 22:56:31,119 [INFO] benchmark.orchestrator: Creating split: seed=42  n_train=25
+2026-04-20 22:56:31,121 [INFO] shared.split_manager: Official split [wood]: prefix detection — train_*=247  test_*=19
+2026-04-20 22:56:31,121 [INFO] shared.split_manager: Official test split: 19 OK + 60 NOK (preserved, not reshuffled)
+2026-04-20 22:56:31,129 [INFO] shared.split_manager: Split manifest saved → splits/wood/seed42/n25/manifest.json
+2026-04-20 22:56:31,129 [INFO] shared.split_manager: Split created [official_test]: train=25  val=50  test_ok=19  test_nok=60
+2026-04-20 22:56:31,129 [INFO] benchmark.orchestrator: Run config: experiments_root=experiments  seeds=[42]  n_train=25  preprocessing=baseline  threshold=quantile(p=0.9800)
+2026-04-20 22:56:31,129 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,129 [INFO] benchmark.orchestrator:   MODEL: patchcore
+2026-04-20 22:56:31,129 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,129 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,129 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n25/manifest.json
+2026-04-20 22:56:31,129 [INFO] benchmark.orchestrator:   SKIP: patchcore seed=42 n_train=25 — results already exist at experiments/wood/patchcore/mode=baseline/n_train=25/seed=42
+2026-04-20 22:56:31,129 [INFO] benchmark.orchestrator: Aggregating patchcore: seeds=[42]  n_train=25  mode=baseline
+2026-04-20 22:56:31,130 [INFO] shared.aggregate: Consistency OK: wood/patchcore mode=baseline n_train=25 seeds=[42]
+2026-04-20 22:56:31,130 [INFO] shared.aggregate: Summary saved → experiments/wood/patchcore/mode=baseline/n_train=25/summary.json
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator:   MODEL: rd_plus_plus
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,130 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n25/manifest.json
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator:   SKIP: rd_plus_plus seed=42 n_train=25 — results already exist at experiments/wood/rd_plus_plus/mode=baseline/n_train=25/seed=42
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator: Aggregating rd_plus_plus: seeds=[42]  n_train=25  mode=baseline
+2026-04-20 22:56:31,130 [INFO] shared.aggregate: Consistency OK: wood/rd_plus_plus mode=baseline n_train=25 seeds=[42]
+2026-04-20 22:56:31,130 [INFO] shared.aggregate: Summary saved → experiments/wood/rd_plus_plus/mode=baseline/n_train=25/summary.json
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator:   MODEL: simplenet
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,130 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n25/manifest.json
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator:   SKIP: simplenet seed=42 n_train=25 — results already exist at experiments/wood/simplenet/mode=baseline/n_train=25/seed=42
+2026-04-20 22:56:31,130 [INFO] benchmark.orchestrator: Aggregating simplenet: seeds=[42]  n_train=25  mode=baseline
+2026-04-20 22:56:31,130 [INFO] shared.aggregate: Consistency OK: wood/simplenet mode=baseline n_train=25 seeds=[42]
+2026-04-20 22:56:31,131 [INFO] shared.aggregate: Summary saved → experiments/wood/simplenet/mode=baseline/n_train=25/summary.json
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator:   MODEL: anomalydino
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,131 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n25/manifest.json
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator:   SKIP: anomalydino seed=42 n_train=25 — results already exist at experiments/wood/anomalydino/mode=baseline/n_train=25/seed=42
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator: Aggregating anomalydino: seeds=[42]  n_train=25  mode=baseline
+2026-04-20 22:56:31,131 [INFO] shared.aggregate: Consistency OK: wood/anomalydino mode=baseline n_train=25 seeds=[42]
+2026-04-20 22:56:31,131 [INFO] shared.aggregate: Summary saved → experiments/wood/anomalydino/mode=baseline/n_train=25/summary.json
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator:   FEW-SHOT STUDY: n_train=50
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:56:31,131 [INFO] benchmark.orchestrator: Validating dataset: wood
+2026-04-20 22:56:31,135 [INFO] shared.dataset_schema: Dataset validated: wood — {'ok_count': 266, 'nok_count': 60, 'mask_count': 60, 'has_masks': True}
+2026-04-20 22:56:31,135 [INFO] benchmark.orchestrator: Creating split: seed=42  n_train=50
+2026-04-20 22:56:31,137 [INFO] shared.split_manager: Official split [wood]: prefix detection — train_*=247  test_*=19
+2026-04-20 22:56:31,137 [INFO] shared.split_manager: Official test split: 19 OK + 60 NOK (preserved, not reshuffled)
+2026-04-20 22:56:31,146 [INFO] shared.split_manager: Split manifest saved → splits/wood/seed42/n50/manifest.json
+2026-04-20 22:56:31,146 [INFO] shared.split_manager: Split created [official_test]: train=50  val=50  test_ok=19  test_nok=60
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator: Run config: experiments_root=experiments  seeds=[42]  n_train=50  preprocessing=baseline  threshold=quantile(p=0.9800)
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator:   MODEL: patchcore
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,146 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n50/manifest.json
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator:   SKIP: patchcore seed=42 n_train=50 — results already exist at experiments/wood/patchcore/mode=baseline/n_train=50/seed=42
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator: Aggregating patchcore: seeds=[42]  n_train=50  mode=baseline
+2026-04-20 22:56:31,146 [INFO] shared.aggregate: Consistency OK: wood/patchcore mode=baseline n_train=50 seeds=[42]
+2026-04-20 22:56:31,146 [INFO] shared.aggregate: Summary saved → experiments/wood/patchcore/mode=baseline/n_train=50/summary.json
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator:   MODEL: rd_plus_plus
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,146 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n50/manifest.json
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator:   SKIP: rd_plus_plus seed=42 n_train=50 — results already exist at experiments/wood/rd_plus_plus/mode=baseline/n_train=50/seed=42
+2026-04-20 22:56:31,146 [INFO] benchmark.orchestrator: Aggregating rd_plus_plus: seeds=[42]  n_train=50  mode=baseline
+2026-04-20 22:56:31,146 [INFO] shared.aggregate: Consistency OK: wood/rd_plus_plus mode=baseline n_train=50 seeds=[42]
+2026-04-20 22:56:31,147 [INFO] shared.aggregate: Summary saved → experiments/wood/rd_plus_plus/mode=baseline/n_train=50/summary.json
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator:   MODEL: simplenet
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,147 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n50/manifest.json
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator:   SKIP: simplenet seed=42 n_train=50 — results already exist at experiments/wood/simplenet/mode=baseline/n_train=50/seed=42
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator: Aggregating simplenet: seeds=[42]  n_train=50  mode=baseline
+2026-04-20 22:56:31,147 [INFO] shared.aggregate: Consistency OK: wood/simplenet mode=baseline n_train=50 seeds=[42]
+2026-04-20 22:56:31,147 [INFO] shared.aggregate: Summary saved → experiments/wood/simplenet/mode=baseline/n_train=50/summary.json
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator:   MODEL: anomalydino
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,147 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n50/manifest.json
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator:   SKIP: anomalydino seed=42 n_train=50 — results already exist at experiments/wood/anomalydino/mode=baseline/n_train=50/seed=42
+2026-04-20 22:56:31,147 [INFO] benchmark.orchestrator: Aggregating anomalydino: seeds=[42]  n_train=50  mode=baseline
+2026-04-20 22:56:31,147 [INFO] shared.aggregate: Consistency OK: wood/anomalydino mode=baseline n_train=50 seeds=[42]
+2026-04-20 22:56:31,147 [INFO] shared.aggregate: Summary saved → experiments/wood/anomalydino/mode=baseline/n_train=50/summary.json
+2026-04-20 22:56:31,148 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:56:31,148 [INFO] benchmark.orchestrator:   FEW-SHOT STUDY: n_train=100
+2026-04-20 22:56:31,148 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:56:31,148 [INFO] benchmark.orchestrator: Validating dataset: wood
+2026-04-20 22:56:31,152 [INFO] shared.dataset_schema: Dataset validated: wood — {'ok_count': 266, 'nok_count': 60, 'mask_count': 60, 'has_masks': True}
+2026-04-20 22:56:31,152 [INFO] benchmark.orchestrator: Creating split: seed=42  n_train=100
+2026-04-20 22:56:31,154 [INFO] shared.split_manager: Official split [wood]: prefix detection — train_*=247  test_*=19
+2026-04-20 22:56:31,154 [INFO] shared.split_manager: Official test split: 19 OK + 60 NOK (preserved, not reshuffled)
+2026-04-20 22:56:31,164 [INFO] shared.split_manager: Split manifest saved → splits/wood/seed42/n100/manifest.json
+2026-04-20 22:56:31,164 [INFO] shared.split_manager: Split created [official_test]: train=100  val=50  test_ok=19  test_nok=60
+2026-04-20 22:56:31,164 [INFO] benchmark.orchestrator: Run config: experiments_root=experiments  seeds=[42]  n_train=100  preprocessing=baseline  threshold=quantile(p=0.9800)
+2026-04-20 22:56:31,164 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,164 [INFO] benchmark.orchestrator:   MODEL: patchcore
+2026-04-20 22:56:31,164 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,164 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,164 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n100/manifest.json
+2026-04-20 22:56:31,164 [INFO] benchmark.orchestrator:   SKIP: patchcore seed=42 n_train=100 — results already exist at experiments/wood/patchcore/mode=baseline/n_train=100/seed=42
+2026-04-20 22:56:31,164 [INFO] benchmark.orchestrator: Aggregating patchcore: seeds=[42]  n_train=100  mode=baseline
+2026-04-20 22:56:31,164 [INFO] shared.aggregate: Consistency OK: wood/patchcore mode=baseline n_train=100 seeds=[42]
+2026-04-20 22:56:31,165 [INFO] shared.aggregate: Summary saved → experiments/wood/patchcore/mode=baseline/n_train=100/summary.json
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator:   MODEL: rd_plus_plus
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,165 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n100/manifest.json
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator:   SKIP: rd_plus_plus seed=42 n_train=100 — results already exist at experiments/wood/rd_plus_plus/mode=baseline/n_train=100/seed=42
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator: Aggregating rd_plus_plus: seeds=[42]  n_train=100  mode=baseline
+2026-04-20 22:56:31,165 [INFO] shared.aggregate: Consistency OK: wood/rd_plus_plus mode=baseline n_train=100 seeds=[42]
+2026-04-20 22:56:31,165 [INFO] shared.aggregate: Summary saved → experiments/wood/rd_plus_plus/mode=baseline/n_train=100/summary.json
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator:   MODEL: simplenet
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,165 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n100/manifest.json
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator:   SKIP: simplenet seed=42 n_train=100 — results already exist at experiments/wood/simplenet/mode=baseline/n_train=100/seed=42
+2026-04-20 22:56:31,165 [INFO] benchmark.orchestrator: Aggregating simplenet: seeds=[42]  n_train=100  mode=baseline
+2026-04-20 22:56:31,165 [INFO] shared.aggregate: Consistency OK: wood/simplenet mode=baseline n_train=100 seeds=[42]
+2026-04-20 22:56:31,165 [INFO] shared.aggregate: Summary saved → experiments/wood/simplenet/mode=baseline/n_train=100/summary.json
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator:   MODEL: anomalydino
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,166 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n100/manifest.json
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator:   SKIP: anomalydino seed=42 n_train=100 — results already exist at experiments/wood/anomalydino/mode=baseline/n_train=100/seed=42
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator: Aggregating anomalydino: seeds=[42]  n_train=100  mode=baseline
+2026-04-20 22:56:31,166 [INFO] shared.aggregate: Consistency OK: wood/anomalydino mode=baseline n_train=100 seeds=[42]
+2026-04-20 22:56:31,166 [INFO] shared.aggregate: Summary saved → experiments/wood/anomalydino/mode=baseline/n_train=100/summary.json
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator:   FEW-SHOT STUDY: n_train=197
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator: ======================================================================
+2026-04-20 22:56:31,166 [INFO] benchmark.orchestrator: Validating dataset: wood
+2026-04-20 22:56:31,170 [INFO] shared.dataset_schema: Dataset validated: wood — {'ok_count': 266, 'nok_count': 60, 'mask_count': 60, 'has_masks': True}
+2026-04-20 22:56:31,170 [INFO] benchmark.orchestrator: Creating split: seed=42  n_train=197
+2026-04-20 22:56:31,172 [INFO] shared.split_manager: Official split [wood]: prefix detection — train_*=247  test_*=19
+2026-04-20 22:56:31,172 [INFO] shared.split_manager: Official test split: 19 OK + 60 NOK (preserved, not reshuffled)
+2026-04-20 22:56:31,186 [INFO] shared.split_manager: Split manifest saved → splits/wood/seed42/n197/manifest.json
+2026-04-20 22:56:31,186 [INFO] shared.split_manager: Split created [official_test]: train=197  val=50  test_ok=19  test_nok=60
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator: Run config: experiments_root=experiments  seeds=[42]  n_train=197  preprocessing=baseline  threshold=quantile(p=0.9800)
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator:   MODEL: patchcore
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,186 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n197/manifest.json
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator:   SKIP: patchcore seed=42 n_train=197 — results already exist at experiments/wood/patchcore/mode=baseline/n_train=197/seed=42
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator: Aggregating patchcore: seeds=[42]  n_train=197  mode=baseline
+2026-04-20 22:56:31,186 [INFO] shared.aggregate: Consistency OK: wood/patchcore mode=baseline n_train=197 seeds=[42]
+2026-04-20 22:56:31,186 [INFO] shared.aggregate: Summary saved → experiments/wood/patchcore/mode=baseline/n_train=197/summary.json
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator:   MODEL: rd_plus_plus
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,186 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n197/manifest.json
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator:   SKIP: rd_plus_plus seed=42 n_train=197 — results already exist at experiments/wood/rd_plus_plus/mode=baseline/n_train=197/seed=42
+2026-04-20 22:56:31,186 [INFO] benchmark.orchestrator: Aggregating rd_plus_plus: seeds=[42]  n_train=197  mode=baseline
+2026-04-20 22:56:31,186 [INFO] shared.aggregate: Consistency OK: wood/rd_plus_plus mode=baseline n_train=197 seeds=[42]
+2026-04-20 22:56:31,187 [INFO] shared.aggregate: Summary saved → experiments/wood/rd_plus_plus/mode=baseline/n_train=197/summary.json
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator:   MODEL: simplenet
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,187 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n197/manifest.json
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator:   SKIP: simplenet seed=42 n_train=197 — results already exist at experiments/wood/simplenet/mode=baseline/n_train=197/seed=42
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator: Aggregating simplenet: seeds=[42]  n_train=197  mode=baseline
+2026-04-20 22:56:31,187 [INFO] shared.aggregate: Consistency OK: wood/simplenet mode=baseline n_train=197 seeds=[42]
+2026-04-20 22:56:31,187 [INFO] shared.aggregate: Summary saved → experiments/wood/simplenet/mode=baseline/n_train=197/summary.json
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator:   MODEL: anomalydino
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator: ============================================================
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator:   Seed: 42
+2026-04-20 22:56:31,187 [DEBUG] benchmark.orchestrator: Pre-run audit OK: split manifest exists at splits/wood/seed42/n197/manifest.json
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator:   SKIP: anomalydino seed=42 n_train=197 — results already exist at experiments/wood/anomalydino/mode=baseline/n_train=197/seed=42
+2026-04-20 22:56:31,187 [INFO] benchmark.orchestrator: Aggregating anomalydino: seeds=[42]  n_train=197  mode=baseline
+2026-04-20 22:56:31,187 [INFO] shared.aggregate: Consistency OK: wood/anomalydino mode=baseline n_train=197 seeds=[42]
+2026-04-20 22:56:31,188 [INFO] shared.aggregate: Summary saved → experiments/wood/anomalydino/mode=baseline/n_train=197/summary.json
+
+============================================================
+  patchcore — Few-shot results
+============================================================
+  n_train=  10  AUROC=0.9825  F1=0.9431
+  n_train=  25  AUROC=0.9851  F1=0.9593
+  n_train=  50  AUROC=0.9842  F1=0.9508
+  n_train= 100  AUROC=0.9921  F1=0.9672
+  n_train= 197  AUROC=0.993  F1=0.9672
+
+============================================================
+  rd_plus_plus — Few-shot results
+============================================================
+  n_train=  10  AUROC=0.9886  F1=0.95
+  n_train=  25  AUROC=0.9886  F1=0.958
+  n_train=  50  AUROC=0.9895  F1=0.9573
+  n_train= 100  AUROC=0.9895  F1=0.9672
+  n_train= 197  AUROC=0.9912  F1=0.9508
+
+============================================================
+  simplenet — Few-shot results
+============================================================
+  n_train=  10  AUROC=0.5509  F1=0.125
+  n_train=  25  AUROC=0.9877  F1=0.9381
+  n_train=  50  AUROC=0.9877  F1=0.9655
+  n_train= 100  AUROC=0.9886  F1=0.9672
+  n_train= 197  AUROC=0.964  F1=0.9483
+
+============================================================
+  anomalydino — Few-shot results
+============================================================
+  n_train=  10  AUROC=0.9982  F1=0.9748
+  n_train=  25  AUROC=0.9939  F1=0.9672
+  n_train=  50  AUROC=0.9956  F1=0.9756
+  n_train= 100  AUROC=0.9965  F1=0.9677
+  n_train= 197  AUROC=0.9965  F1=0.9756

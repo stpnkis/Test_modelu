@@ -227,7 +227,7 @@ def main() -> None:
 
     # ── Validate only ────────────────────────────────────────────────
     if args.validate_only:
-        stats = validate_dataset(dataset_dir)
+        stats = validate_dataset(dataset_dir, dataset_id=dataset_id)
         print(json.dumps(stats, indent=2))
         return
 

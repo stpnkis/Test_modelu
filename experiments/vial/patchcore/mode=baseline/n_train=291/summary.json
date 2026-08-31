@@ -1,0 +1,278 @@
+{
+  "dataset_id": "vial",
+  "model_name": "patchcore",
+  "preprocessing_mode": "baseline",
+  "n_train": 291,
+  "seeds": [
+    42,
+    1337,
+    2026
+  ],
+  "n_seeds_found": 3,
+  "n_seeds_expected": 3,
+  "aggregation_timestamp": "2026-04-22T19:37:01.189601",
+  "mean": {
+    "auroc": 0.8829,
+    "average_precision": 0.9627,
+    "precision": 1.0,
+    "recall": 0.5397,
+    "f1": 0.6989,
+    "model_only_latency_ms": 8.6753,
+    "end_to_end_latency_ms": 28.9557,
+    "gpu_peak_memory_mb": 1665.19,
+    "fit_time_s": 63.2267,
+    "aupro": "N/A"
+  },
+  "std": {
+    "auroc": 0.0042,
+    "average_precision": 0.0013,
+    "precision": 0.0,
+    "recall": 0.0763,
+    "f1": 0.0642,
+    "model_only_latency_ms": 0.3314,
+    "end_to_end_latency_ms": 1.7941,
+    "gpu_peak_memory_mb": 0.0,
+    "fit_time_s": 1.4458,
+    "aupro": "N/A"
+  },
+  "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+  "per_seed": {
+    "42": {
+      "dataset_id": "vial",
+      "model_name": "patchcore",
+      "seed": 42,
+      "preprocessing_mode": "baseline",
+      "n_train": 291,
+      "timestamp": "2026-04-22T17:34:30.997700",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-22T17:34:30.999621",
+        "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.8814,
+        "average_precision": 0.9623,
+        "precision": 1.0,
+        "recall": 0.619,
+        "f1": 0.7647,
+        "threshold": 31.744133,
+        "n_test_total": 140,
+        "n_test_ok": 35,
+        "n_test_nok": 105,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+        "n_val_ok_for_threshold": 41,
+        "anomalib_internal_split_disabled": true
+      },
+      "runtime": {
+        "model_only_latency_ms": 8.397,
+        "model_only_latency_std_ms": 1.126,
+        "end_to_end_latency_ms": 26.884,
+        "end_to_end_latency_std_ms": 1.01,
+        "gpu_peak_memory_mb": 1665.19,
+        "fit_time_s": 61.81,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-22T17:34:30.997394",
+        "config_snapshot": {
+          "backbone": "resnet50",
+          "layers": [
+            "layer2",
+            "layer3"
+          ],
+          "coreset_sampling_ratio": 0.1,
+          "num_neighbors": 15,
+          "n_train": 291,
+          "seed": 42,
+          "dataset_id": "vial"
+        }
+      },
+      "config": {
+        "backbone": "resnet50",
+        "layers": [
+          "layer2",
+          "layer3"
+        ],
+        "coreset_sampling_ratio": 0.1,
+        "num_neighbors": 15,
+        "n_train": 291,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "anomalib_val_split_mode": "same_as_test",
+        "anomalib_internal_split_disabled": true,
+        "scoring_method": "direct_model_inference"
+      }
+    },
+    "1337": {
+      "dataset_id": "vial",
+      "model_name": "patchcore",
+      "seed": 1337,
+      "preprocessing_mode": "baseline",
+      "n_train": 291,
+      "timestamp": "2026-04-22T17:35:44.563656",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-22T17:35:44.566532",
+        "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.8876,
+        "average_precision": 0.9642,
+        "precision": 1.0,
+        "recall": 0.4667,
+        "f1": 0.6364,
+        "threshold": 32.41917,
+        "n_test_total": 140,
+        "n_test_ok": 35,
+        "n_test_nok": 105,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+        "n_val_ok_for_threshold": 41,
+        "anomalib_internal_split_disabled": true
+      },
+      "runtime": {
+        "model_only_latency_ms": 8.587,
+        "model_only_latency_std_ms": 1.336,
+        "end_to_end_latency_ms": 29.999,
+        "end_to_end_latency_std_ms": 1.509,
+        "gpu_peak_memory_mb": 1665.19,
+        "fit_time_s": 63.17,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-22T17:35:44.563364",
+        "config_snapshot": {
+          "backbone": "resnet50",
+          "layers": [
+            "layer2",
+            "layer3"
+          ],
+          "coreset_sampling_ratio": 0.1,
+          "num_neighbors": 15,
+          "n_train": 291,
+          "seed": 1337,
+          "dataset_id": "vial"
+        }
+      },
+      "config": {
+        "backbone": "resnet50",
+        "layers": [
+          "layer2",
+          "layer3"
+        ],
+        "coreset_sampling_ratio": 0.1,
+        "num_neighbors": 15,
+        "n_train": 291,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "anomalib_val_split_mode": "same_as_test",
+        "anomalib_internal_split_disabled": true,
+        "scoring_method": "direct_model_inference"
+      }
+    },
+    "2026": {
+      "dataset_id": "vial",
+      "model_name": "patchcore",
+      "seed": 2026,
+      "preprocessing_mode": "baseline",
+      "n_train": 291,
+      "timestamp": "2026-04-22T17:37:00.152626",
+      "environment": {
+        "git_sha": "unknown",
+        "timestamp": "2026-04-22T17:37:00.154290",
+        "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.31",
+        "python_version": "3.10.13",
+        "torch_version": "2.1.0",
+        "cuda_available": true,
+        "cuda_version": "11.8",
+        "gpu_name": "NVIDIA GeForce RTX 3090",
+        "gpu_count": 1,
+        "gpu_memory_total_mb": 24256.9
+      },
+      "metrics": {
+        "auroc": 0.8797,
+        "average_precision": 0.9616,
+        "precision": 1.0,
+        "recall": 0.5333,
+        "f1": 0.6957,
+        "threshold": 31.916757,
+        "n_test_total": 140,
+        "n_test_ok": 35,
+        "n_test_nok": 105,
+        "aupro": "N/A",
+        "aupro_reason": "Model does not produce anomaly maps or dataset has no masks.",
+        "n_val_ok_for_threshold": 41,
+        "anomalib_internal_split_disabled": true
+      },
+      "runtime": {
+        "model_only_latency_ms": 9.042,
+        "model_only_latency_std_ms": 1.284,
+        "end_to_end_latency_ms": 29.984,
+        "end_to_end_latency_std_ms": 2.016,
+        "gpu_peak_memory_mb": 1665.19,
+        "fit_time_s": 64.7,
+        "warmup_iterations": 10,
+        "measured_iterations": 30,
+        "device": "cuda",
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "batch_size": 1,
+        "timestamp": "2026-04-22T17:37:00.152344",
+        "config_snapshot": {
+          "backbone": "resnet50",
+          "layers": [
+            "layer2",
+            "layer3"
+          ],
+          "coreset_sampling_ratio": 0.1,
+          "num_neighbors": 15,
+          "n_train": 291,
+          "seed": 2026,
+          "dataset_id": "vial"
+        }
+      },
+      "config": {
+        "backbone": "resnet50",
+        "layers": [
+          "layer2",
+          "layer3"
+        ],
+        "coreset_sampling_ratio": 0.1,
+        "num_neighbors": 15,
+        "n_train": 291,
+        "preprocessing_mode": "baseline",
+        "image_size": 224,
+        "threshold_strategy": "quantile",
+        "threshold_quantile_p": 0.98,
+        "anomalib_val_split_mode": "same_as_test",
+        "anomalib_internal_split_disabled": true,
+        "scoring_method": "direct_model_inference"
+      }
+    }
+  }
+}
